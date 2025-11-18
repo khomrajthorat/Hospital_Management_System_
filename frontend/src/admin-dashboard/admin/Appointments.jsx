@@ -28,7 +28,7 @@ const Appointments = () => {
     doctor: "",
   });
 
-  // dropdown data
+  // dropdown data from backend
   const [doctors, setDoctors] = useState([]);
   const [servicesList, setServicesList] = useState([]);
   const [patients, setPatients] = useState([]);
@@ -42,18 +42,7 @@ const Appointments = () => {
     patient: "",
     status: "booked", // default
     servicesDetail: "",
-    tax: "",
   });
-
-  // ------------ helpers to safely get display names -------------
-  const getDoctorLabel = (d) =>
-    d?.name || d?.doctorName || d?.fullName || "Unnamed doctor";
-
-  const getPatientLabel = (p) =>
-    p?.name || p?.patientName || p?.fullName || "Unnamed patient";
-
-  const getServiceLabel = (s) =>
-    s?.name || s?.serviceName || s?.title || "Unnamed service";
 
   // ------------------ FETCH APPOINTMENTS ------------------
   useEffect(() => {
@@ -75,13 +64,13 @@ const Appointments = () => {
     }
   };
 
-  // ------------------ FETCH DROPDOWNS ------------------
+  // ------------------ FETCH DOCTORS / SERVICES / PATIENTS ------------------
   useEffect(() => {
     const fetchDropdownData = async () => {
       try {
         const [docRes, servRes, patRes] = await Promise.all([
           axios.get("http://localhost:3001/doctors"),
-          axios.get("http://localhost:3001/api/services"), // NOTE: /api/services
+          axios.get("http://localhost:3001/api/services"),
           axios.get("http://localhost:3001/patients"),
         ]);
 
@@ -100,28 +89,13 @@ const Appointments = () => {
     fetchDropdownData();
   }, []);
 
-  // ------------------ DELETE HANDLER ------------------
-  const handleDeleteAppointment = async (id) => {
-    const confirmDelete = window.confirm(
-      "Are you sure you want to delete this appointment?"
-    );
-    if (!confirmDelete) return;
-
-    try {
-      await axios.delete(`http://localhost:3001/appointments/${id}`);
-      setAppointments((prev) => prev.filter((a) => a._id !== id));
-    } catch (err) {
-      console.error("Error deleting appointment:", err);
-      alert("Error deleting appointment. Check console.");
-    }
-  };
-
-  // ------------------ TAB CHANGE (ALL / UPCOMING / PAST) ------------------
+  // ------------------ TAB LOGIC (ALL / UPCOMING / PAST) ------------------
   useEffect(() => {
     const q = {};
     if (tab === "upcoming") q.status = "upcoming";
     if (tab === "past") q.status = "completed";
     fetchAppointments(q);
+    // close panels when switching tabs
     setFiltersOpen(false);
     setAddOpen(false);
   }, [tab]);
@@ -173,6 +147,7 @@ const Appointments = () => {
   const handleAddSubmit = async (e) => {
     e.preventDefault();
     try {
+      // payload: include patientName & doctorName for simple list display
       const payload = {
         patientName: form.patient,
         doctorName: form.doctor,
@@ -181,7 +156,6 @@ const Appointments = () => {
         services: form.service,
         status: form.status,
         servicesDetail: form.servicesDetail,
-        tax: form.tax,
         createdAt: new Date(),
       };
       const res = await axios.post(
@@ -191,6 +165,7 @@ const Appointments = () => {
       if (res.data?.message) {
         alert("Appointment added");
         closeAddForm();
+        // reset minimal fields, keep default status
         setForm({
           clinic: "",
           doctor: "",
@@ -199,7 +174,6 @@ const Appointments = () => {
           patient: "",
           status: "booked",
           servicesDetail: "",
-          tax: "",
         });
         fetchAppointments();
       } else {
@@ -208,6 +182,41 @@ const Appointments = () => {
     } catch (err) {
       console.error("Error creating appointment:", err);
       alert("Error creating appointment. Check console.");
+    }
+  };
+
+  // ------------------ DELETE & CANCEL HANDLERS ------------------
+  const handleDeleteAppointment = async (id) => {
+    const confirmDelete = window.confirm(
+      "Are you sure you want to delete this appointment?"
+    );
+    if (!confirmDelete) return;
+
+    try {
+      await axios.delete(`http://localhost:3001/appointments/${id}`);
+      setAppointments((prev) => prev.filter((a) => a._id !== id));
+    } catch (err) {
+      console.error("Error deleting appointment:", err);
+      alert("Error deleting appointment. Check console.");
+    }
+  };
+
+  const handleCancelAppointment = async (id) => {
+    const confirmCancel = window.confirm(
+      "Mark this appointment as cancelled?"
+    );
+    if (!confirmCancel) return;
+
+    try {
+      await axios.put(`http://localhost:3001/appointments/${id}/cancel`);
+      setAppointments((prev) =>
+        prev.map((a) =>
+          a._id === id ? { ...a, status: "cancelled" } : a
+        )
+      );
+    } catch (err) {
+      console.error("Error cancelling appointment:", err);
+      alert("Error cancelling appointment. Check console.");
     }
   };
 
@@ -350,7 +359,7 @@ const Appointments = () => {
           </div>
         </div>
 
-        {/* add form panel  */}
+        {/* add form panel (slide) — design matches your screenshot */}
         <div className={`form-panel appointments-form ${addOpen ? "open" : ""}`}>
           <div className="p-3">
             <form onSubmit={handleAddSubmit}>
@@ -373,27 +382,31 @@ const Appointments = () => {
                       </select>
                     </div>
 
+                    {/* Doctor from DB */}
                     <div className="col-md-12">
                       <label className="form-label">Doctor *</label>
-                      <select
-                        name="doctor"
-                        className="form-select"
-                        value={form.doctor}
-                        onChange={handleFormChange}
-                        required
-                      >
-                        <option value="">Search</option>
-                        {doctors.map((d) => {
-                          const label = getDoctorLabel(d);
-                          return (
-                            <option key={d._id} value={label}>
-                              {label}
+                      <div className="d-flex justify-content-between align-items-center">
+                        <select
+                          name="doctor"
+                          className="form-select"
+                          value={form.doctor}
+                          onChange={handleFormChange}
+                          required
+                        >
+                          <option value="">Search</option>
+                          {doctors.map((d) => (
+                            <option
+                              key={d._id}
+                              value={`${d.firstName} ${d.lastName}`}
+                            >
+                              {d.firstName} {d.lastName}
                             </option>
-                          );
-                        })}
-                      </select>
+                          ))}
+                        </select>
+                      </div>
                     </div>
 
+                    {/* Service from DB */}
                     <div className="col-md-12">
                       <label className="form-label">Service *</label>
                       <div className="d-flex justify-content-between align-items-center">
@@ -405,14 +418,11 @@ const Appointments = () => {
                           required
                         >
                           <option value="">Service</option>
-                          {servicesList.map((s) => {
-                            const label = getServiceLabel(s);
-                            return (
-                              <option key={s._id} value={label}>
-                                {label}
-                              </option>
-                            );
-                          })}
+                          {servicesList.map((s) => (
+                            <option key={s._id} value={s.name}>
+                              {s.name}
+                            </option>
+                          ))}
                         </select>
                         <a
                           className="ms-2 small-link"
@@ -436,6 +446,7 @@ const Appointments = () => {
                       />
                     </div>
 
+                    {/* Patient from DB */}
                     <div className="col-md-12">
                       <label className="form-label">Patient *</label>
                       <div className="d-flex justify-content-between align-items-center">
@@ -447,14 +458,14 @@ const Appointments = () => {
                           required
                         >
                           <option value="">Search</option>
-                          {patients.map((p) => {
-                            const label = getPatientLabel(p);
-                            return (
-                              <option key={p._id} value={label}>
-                                {label}
-                              </option>
-                            );
-                          })}
+                          {patients.map((p) => (
+                            <option
+                              key={p._id}
+                              value={`${p.firstName} ${p.lastName}`}
+                            >
+                              {p.firstName} {p.lastName}
+                            </option>
+                          ))}
                         </select>
                         <a
                           className="ms-2 small-link"
@@ -502,15 +513,16 @@ const Appointments = () => {
 
                   <label className="form-label">Tax</label>
                   <input
-                    name="tax"
+                    name="servicesDetail"
                     className="form-control mb-3"
-                    placeholder="No tax found"
-                    value={form.tax}
+                    placeholder="No service detail found.."
+                    value={form.servicesDetail}
                     onChange={handleFormChange}
                   />
                 </div>
               </div>
 
+              {/* bottom-right Save/Cancel buttons (aligned to match UI) */}
               <div className="d-flex justify-content-end gap-2 mt-3">
                 <button
                   type="button"
@@ -578,6 +590,8 @@ const Appointments = () => {
                                 ? "bg-warning"
                                 : a.status === "completed"
                                 ? "bg-success"
+                                : a.status === "cancelled"
+                                ? "bg-danger"
                                 : "bg-secondary"
                             }`}
                           >
@@ -588,6 +602,12 @@ const Appointments = () => {
                           <div className="d-flex gap-2">
                             <button className="btn btn-sm btn-outline-primary">
                               View
+                            </button>
+                            <button
+                              className="btn btn-sm btn-outline-secondary"
+                              onClick={() => handleCancelAppointment(a._id)}
+                            >
+                              Cancel
                             </button>
                             <button
                               className="btn btn-sm btn-outline-danger"
@@ -605,8 +625,7 @@ const Appointments = () => {
             )}
           </div>
 
-          /* pagination placeholder */
-          {/*---*/}
+          {/* pagination placeholder */}
           <div className="d-flex justify-content-end mt-3">
             <nav>
               <ul className="pagination pagination-sm m-0">

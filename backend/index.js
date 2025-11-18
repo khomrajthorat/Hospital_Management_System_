@@ -1,4 +1,6 @@
 
+
+// 1. Import required libraries
 const express = require("express");
 const cors = require("cors");
 const mongoose = require("mongoose");
@@ -7,16 +9,24 @@ const Patient = require('./models/Patient');
 const DoctorModel = require("./models/Doctor");
 const BillingModel = require("./models/Billing");
 const AppointmentModel = require("./models/Appointment");
-const Service = require("./Models/Service");
+const Service = require("./models/Service");
 const ADMIN_EMAIL = "admin@onecare.com";
 const ADMIN_PASSWORD = "admin123";
 
+// PDF Libraries
+const { PDFDocument, StandardFonts, rgb } = require("pdf-lib");
+const QRCode = require("qrcode");
+const fs = require("fs");
+const path = require("path");
 
+
+// 2. Create an Express app
 const app = express();
 
+// 3. Middlewares: to understand JSON body + allow CORS
+app.use(cors());            // allow requests from frontend
+app.use(express.json());    // parse JSON request body
 
-app.use(cors());            
-app.use(express.json());    
 // connect to MongoDB
 mongoose
   .connect("mongodb://127.0.0.1:27017/hospital_auth")
@@ -28,12 +38,17 @@ mongoose
   });
 
 
+// ===============================
+//             LOGIN
+// ===============================
+
+// 5. Login route (POST /login)
 app.post("/login", async(req, res) => {
   try {
-    
+    // req.body will look like: { email: "...", password: "..." }
     const { email, password } = req.body;
 
-
+     // 0) Check if this is admin login (hardcoded)
     if (email === ADMIN_EMAIL && password === ADMIN_PASSWORD) {
       return res.json({
         id: "admin-id",
@@ -43,16 +58,16 @@ app.post("/login", async(req, res) => {
       });
     }
     
-   
+    // find user with this email
     const user = await User.findOne({ email });
 
 
-
+    // if user not found OR password doesn't match -> error
     if (!user || user.password !== password) {
       return res.status(401).json({ message: "Invalid email or password" });
     }
 
-   
+    // success: send back user info (without password)
     res.json({
       id: user.id,
       email: user.email,
@@ -65,32 +80,35 @@ app.post("/login", async(req, res) => {
   }
 });
 
-
+// ===============================
+//             SIGNUP
+// ===============================
 
 app.post("/signup", async(req, res) => {
   try {
-    
+    // 1. Get data sent from frontend
     const { name, email, password } = req.body;
-   
+    // 2. Simple validation
     if (!name || !email || !password) {
       return res.status(400).json({ message: "All fields are required" });
     }
-    
+    // // 3. Check if email already exists in users array
+    // const existingUser = users.find((u) => u.email === email);
 
     const existing = await User.findOne({ email });
     if (existing) {
       return res.status(400).json({ message: "Email already registered" });
     }
 
-    
+    // 3) create new user as PATIENT
     const newUser = await User.create({
       email,
-      password,         
-      role: "patient",   
+      password,          // plain for now
+      role: "patient",   // signup is only for patients
       name
     });
 
-   
+    // 5. Send back success (without password)
     res.status(201).json({
       id: newUser.id,
       email: newUser.email,
@@ -103,9 +121,9 @@ app.post("/signup", async(req, res) => {
   }
 });
 
-
+// ===============================
 //         PATIENT APIs
-
+// ===============================
 
 const PatientModel = require("./models/Patient");
 
@@ -272,66 +290,6 @@ app.put("/api/services/:id", async (req, res) => {
   }
 });
 
-// ===============================
-//         BILL APIs
-// ===============================
-
-// Create Bill
-app.post("/bills", async (req, res) => {
-  try {
-    const bill = await BillingModel.create(req.body);
-    res.json({ message: "Bill created successfully", data: bill });
-  } catch (err) {
-    res.status(500).json({ message: "Error", error: err.message });
-  }
-});
-
-// Get All Bills
-app.get("/bills", async (req, res) => {
-  try {
-    const bills = await BillingModel.find().sort({ createdAt: -1 });
-    res.json(bills);
-  } catch (err) {
-    res
-      .status(500)
-      .json({ message: "Error fetching bills", error: err.message });
-  }
-});
-
-// Get Single Bill
-app.get("/bills/:id", async (req, res) => {
-  try {
-    const bill = await BillingModel.findById(req.params.id);
-    res.json(bill);
-  } catch (err) {
-    res.status(500).json({ message: "Error fetching bill" });
-  }
-});
-
-// Update Bill
-app.put("/bills/:id", async (req, res) => {
-  try {
-    const updated = await BillingModel.findByIdAndUpdate(
-      req.params.id,
-      req.body,
-      { new: true }
-    );
-    res.json({ message: "Bill updated", data: updated });
-  } catch (err) {
-    res.status(500).json({ message: "Error updating bill" });
-  }
-});
-
-// Delete Bill
-app.delete("/bills/:id", async (req, res) => {
-  try {
-    await BillingModel.findByIdAndDelete(req.params.id);
-    res.json({ message: "Bill deleted" });
-  } catch (err) {
-    res.status(500).json({ message: "Error deleting bill" });
-  }
-});
-
 // Docotor Related stuff here
 app.post("/doctors", async (req, res) => {
   try {
@@ -416,7 +374,7 @@ app.delete("/appointments/:id", async (req, res) => {
   }
 });
 
-// Cancel appointment (mark status Cancelled)
+// Cancel appointment 
 app.put("/appointments/:id/cancel", async (req, res) => {
   try {
     const { id } = req.params;
@@ -435,6 +393,275 @@ app.put("/appointments/:id/cancel", async (req, res) => {
     res.status(500).json({ message: "Server error", error: err.message });
   }
 });
+
+// ===================================================
+//                      BILL APIs
+// ===================================================
+
+// Create Bill
+app.post("/bills", async (req, res) => {
+  try {
+    const saved = await BillingModel.create(req.body);
+    res.json({ message: "Bill created", data: saved });
+  } catch (err) {
+    res.status(500).json({ message: "Bill error" });
+  }
+});
+
+// Get All Bills
+app.get("/bills", async (req, res) => {
+  try {
+    const bills = await BillingModel.find().sort({ createdAt: -1 });
+    res.json(bills);
+  } catch (err) {
+    res.status(500).json({ message: "Error fetching bills" });
+  }
+});
+
+// Get One Bill
+app.get("/bills/:id", async (req, res) => {
+  try {
+    const bill = await BillingModel.findById(req.params.id);
+    res.json(bill);
+  } catch (err) {
+    res.status(500).json({ message: "Error fetching bill" });
+  }
+});
+
+// Update Bill
+app.put("/bills/:id", async (req, res) => {
+  try {
+    const updated = await BillingModel.findByIdAndUpdate(
+      req.params.id,
+      req.body,
+      { new: true }
+    );
+    res.json(updated);
+  } catch (err) {
+    res.status(500).json({ message: "Bill update error" });
+  }
+});
+
+// Delete Bill
+app.delete("/bills/:id", async (req, res) => {
+  try {
+    await BillingModel.findByIdAndDelete(req.params.id);
+    res.json({ message: "Bill deleted" });
+  } catch (err) {
+    res.status(500).json({ message: "Delete error" });
+  }
+});
+
+
+// =======================================================
+//                     PDF ROUTE 
+// =======================================================
+
+app.get("/bills/:id/pdf", async (req, res) => {
+  try {
+    const bill = await BillingModel.findById(req.params.id);
+    if (!bill) return res.status(404).json({ message: "Bill not found" });
+
+    // ============================
+    //   FIXED DOCTOR LOOKUP
+    // ============================
+    let doctor = null;
+
+    if (bill.doctorName) {
+      const [first, last] = bill.doctorName.split(" ");
+
+      doctor = await DoctorModel.findOne({
+        firstName: first,
+        lastName: last,
+      });
+    }
+
+    // ============================
+    // CREATE PDF
+    // ============================
+    const pdf = await PDFDocument.create();
+    const page = pdf.addPage([600, 780]);
+
+    const font = await pdf.embedFont(StandardFonts.Helvetica);
+    const bold = await pdf.embedFont(StandardFonts.HelveticaBold);
+
+    let y = 740;
+
+    // ============================
+    //   CLINIC LOGO
+    // ============================
+    const logoPath = path.join(__dirname, "assets", "logo.png");
+    if (fs.existsSync(logoPath)) {
+      const bytes = fs.readFileSync(logoPath);
+      const img = await pdf.embedPng(bytes);
+      page.drawImage(img, {
+        x: 40,
+        y: 700,
+        width: 70,
+        height: 70,
+      });
+    }
+
+    // ============================
+    //   CLINIC NAME
+    // ============================
+    page.drawText(doctor?.clinic || "Clinic Not Set", {
+      x: 130,
+      y: 740,
+      size: 22,
+      font: bold,
+      color: rgb(0, 0.3, 0.8),
+    });
+
+    // ============================
+    // CLINIC EMAIL + PHONE
+    // ============================
+    y -= 20;
+    page.drawText(`Email: ${doctor?.email || "N/A"}`, { x: 130, y, size: 12, font });
+    y -= 16;
+    page.drawText(`Phone: ${doctor?.phone || "N/A"}`, { x: 130, y, size: 12, font });
+
+    // ============================
+    // RIGHT SIDE - BILL INFO
+    // ============================
+    page.drawText(`Invoice ID: ${bill._id}`, { x: 360, y: 740, size: 11, font });
+    page.drawText(`Status: ${bill.status}`, { x: 360, y: 722, size: 11, font });
+    page.drawText(`Date: ${bill.date}`, { x: 360, y: 705, size: 11, font });
+
+    // ============================
+    //   PATIENT SECTION
+    // ============================
+    y -= 80;
+    page.drawText("Patient Details", {
+      x: 40,
+      y,
+      font: bold,
+      size: 14,
+      color: rgb(0, 0.2, 0.6),
+    });
+
+    y -= 22;
+    page.drawText(`Name: ${bill.patientName}`, {
+      x: 40,
+      y,
+      size: 12,
+      font,
+    });
+
+    // ============================
+    //   SERVICE TABLE HEADER
+    // ============================
+    y -= 40;
+    page.drawText("Amount Due", { x: 40, y, size: 16, font: bold });
+
+    y -= 35;
+    page.drawText("SR", { x: 40, y, size: 12, font: bold });
+    page.drawText("SERVICE NAME", { x: 80, y, size: 12, font: bold });
+    page.drawText("PRICE", { x: 280, y, size: 12, font: bold });
+    page.drawText("QTY", { x: 360, y, size: 12, font: bold });
+    page.drawText("TOTAL", { x: 420, y, size: 12, font: bold });
+
+    y -= 10;
+    page.drawLine({
+      start: { x: 40, y },
+      end: { x: 550, y },
+      thickness: 1,
+      color: rgb(0.6, 0.6, 0.6),
+    });
+
+    // ============================
+    //   SERVICE ITEMS
+    // ============================
+    y -= 22;
+
+    (bill.services || []).forEach((service, i) => {
+      page.drawText(String(i + 1), { x: 40, y, size: 11, font });
+      page.drawText(service, { x: 80, y, size: 11, font });
+
+      // Assuming price of each service = (totalAmount / services count)
+      const price = (bill.totalAmount / bill.services.length).toFixed(2);
+
+      page.drawText(`Rs ${price}`, { x: 280, y, size: 11, font });
+      page.drawText("1", { x: 360, y, size: 11, font });
+      page.drawText(`Rs ${price}`, { x: 420, y, size: 11, font });
+
+      y -= 18;
+    });
+
+    // ============================
+    //   TOTAL SECTION
+    // ============================
+    y -= 40;
+    page.drawText(`Total: Rs ${bill.totalAmount}`, { x: 360, y, size: 12, font });
+    y -= 20;
+    page.drawText(`Discount: Rs ${bill.discount}`, { x: 360, y, size: 12, font });
+    y -= 25;
+    page.drawText(`Amount Due: Rs ${bill.amountDue}`, {
+      x: 360,
+      y,
+      size: 14,
+      font: bold,
+      color: rgb(0.05, 0.45, 0.05),
+    });
+
+    // ============================
+    //   NOTES
+    // ============================
+    if (bill.notes?.trim()) {
+      y -= 40;
+      page.drawText("Notes:", { x: 40, y, size: 12, font: bold });
+      y -= 20;
+      page.drawText(bill.notes, { x: 40, y, size: 11, font });
+    }
+
+    // ============================
+    //   QR CODE
+    // ============================
+    const qrData = `Invoice: ${bill._id}\nAmount Due: Rs ${bill.amountDue}`;
+    const qrURL = await QRCode.toDataURL(qrData);
+    const qrBytes = Buffer.from(qrURL.split(",")[1], "base64");
+    const qrImg = await pdf.embedPng(qrBytes);
+
+    page.drawImage(qrImg, {
+      x: 40,
+      y: 50,
+      width: 90,
+      height: 90,
+    });
+
+    // ============================
+    //   FOOTER
+    // ============================
+    page.drawText("Thank you for choosing our clinic.", {
+      x: 180,
+      y: 60,
+      size: 10,
+      font,
+    });
+    page.drawText("This is a computer-generated invoice.", {
+      x: 170,
+      y: 45,
+      size: 9,
+      font,
+    });
+
+    // SEND FINAL PDF
+    const pdfBytes = await pdf.save();
+    res.setHeader("Content-Type", "application/pdf");
+    res.setHeader("Content-Disposition", `attachment; filename=bill-${bill._id}.pdf`);
+    res.send(Buffer.from(pdfBytes));
+
+  } catch (err) {
+    console.error("PDF ERROR:", err);
+    res.status(500).json({ message: "PDF generation failed" });
+  }
+});
+
+
+
+// ===================================================
+//                   START SERVER
+// ===================================================
 
 // 6. Start the server on port 3001
 const PORT = 3001;
