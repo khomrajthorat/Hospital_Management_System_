@@ -5,7 +5,6 @@ const express = require("express");
 const cors = require("cors");
 const mongoose = require("mongoose");
 const User = require("./models/User");
-const Patient = require("./models/Patient");
 const PatientModel = require("./models/Patient");
 const DoctorModel = require("./models/Doctor");
 const BillingModel = require("./models/Billing");
@@ -54,6 +53,7 @@ app.post("/login", async (req, res) => {
         name: "System Admin",
         email: ADMIN_EMAIL,
         role: "admin",
+        profileCompleted: true, // admin doesn't need profile setup
       });
     }
 
@@ -68,6 +68,7 @@ app.post("/login", async (req, res) => {
       email: user.email,
       role: user.role,
       name: user.name,
+      profileCompleted: user.profileCompleted,
     });
   } catch (err) {
     console.error("Login error:", err);
@@ -97,13 +98,23 @@ app.post("/signup", async (req, res) => {
       password,
       role: "patient",
       name,
+      profileCompleted: false,
     });
+
+    // also create empty patient record
+    await PatientModel.create({
+      userId: newUser._id,
+      firstName: name,
+      email,
+    });
+
 
     res.status(201).json({
       id: newUser.id,
       email: newUser.email,
       role: newUser.role,
       name: newUser.name,
+      profileCompleted: newUser.profileCompleted,
     });
   } catch (err) {
     console.error("Signup error:", err);
@@ -234,10 +245,19 @@ app.post("/appointments", async (req, res) => {
   }
 });
 
-// List appointments with optional filters
+// List appointments with optional filters (query params)
+// Supports:
+//   ?date=YYYY-MM-DD
+//   ?clinic=<string>
+//   ?patient=<string>      (matches patientName)
+//   ?doctor=<string>       (matches doctorName)
+//   ?status=<string>
+//   ?patientId=<id>        (if you store patientId on Appointment)
+//   ?doctorId=<id>         (if you store doctorId on Appointment)
 app.get("/appointments", async (req, res) => {
   try {
     const q = {};
+
     if (req.query.date) q.date = req.query.date;
     if (req.query.clinic)
       q.clinic = { $regex: req.query.clinic, $options: "i" };
@@ -247,12 +267,56 @@ app.get("/appointments", async (req, res) => {
       q.doctorName = { $regex: req.query.doctor, $options: "i" };
     if (req.query.status) q.status = req.query.status;
 
+    // extra filters by ids (safe even if you don't use them yet)
+    if (req.query.patientId) q.patientId = req.query.patientId;
+    if (req.query.doctorId) q.doctorId = req.query.doctorId;
+
     const list = await AppointmentModel.find(q)
       .sort({ createdAt: -1 })
       .limit(500);
+
     res.json(list);
   } catch (err) {
     console.error("Error fetching appointments:", err);
+    res.status(500).json({ message: "Server error", error: err.message });
+  }
+});
+
+// 🔹 Get single appointment by id  (used by DoctorAppointmentDetails)
+app.get("/appointments/:id", async (req, res) => {
+  try {
+    const appt = await AppointmentModel.findById(req.params.id);
+
+    if (!appt) {
+      console.warn("GET /appointments/:id → not found:", req.params.id);
+      return res.status(404).json({ message: "Appointment not found" });
+    }
+
+    res.json(appt);
+  } catch (err) {
+    console.error("Error fetching appointment:", err);
+    res.status(500).json({ message: "Server error", error: err.message });
+  }
+});
+
+// Cancel appointment (status: cancelled)
+app.put("/appointments/:id/cancel", async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    const appt = await AppointmentModel.findByIdAndUpdate(
+      id,
+      { status: "cancelled" },
+      { new: true }
+    );
+
+    if (!appt) {
+      return res.status(404).json({ message: "Appointment not found" });
+    }
+
+    res.json({ message: "Appointment cancelled", data: appt });
+  } catch (err) {
+    console.error("Cancel error", err);
     res.status(500).json({ message: "Server error", error: err.message });
   }
 });
@@ -275,25 +339,7 @@ app.delete("/appointments/:id", async (req, res) => {
   }
 });
 
-// Cancel appointment (status: cancelled)
-app.put("/appointments/:id/cancel", async (req, res) => {
-  try {
-    const { id } = req.params;
 
-    const appt = await AppointmentModel.findByIdAndUpdate(
-      id,
-      { status: "cancelled" },
-      { new: true }
-    );
-
-    if (!appt) return res.status(404).json({ message: "Appointment not found" });
-
-    res.json({ message: "Appointment cancelled", data: appt });
-  } catch (err) {
-    console.error("Cancel error", err);
-    res.status(500).json({ message: "Server error", error: err.message });
-  }
-});
 
 /* ===============================
  *         SERVICE APIs
@@ -409,6 +455,62 @@ app.delete("/bills/:id", async (req, res) => {
     res.status(500).json({ message: "Error deleting bill" });
   }
 });
+
+// CREATE or UPDATE a patient profile for a given userId
+app.put("/patients/by-user/:userId", async (req, res) => {
+  try {
+    let { userId } = req.params;
+    const updateData = req.body;
+
+    // convert string to Mongo ObjectId (matches your Patient schema)
+    try {
+      userId = new mongoose.Types.ObjectId(userId);
+    } catch (err) {
+      console.error("Invalid userId:", err);
+      return res.status(400).json({ message: "Invalid userId" });
+    }
+
+    const patient = await PatientModel.findOneAndUpdate(
+      { userId },                          // find by userId (ObjectId)
+      { $set: { ...updateData, userId } }, // update fields + ensure userId set
+      { new: true, upsert: true }          // create if not found
+    );
+
+    console.log("✅ Patient document upserted:", patient);
+    return res.json(patient);
+  } catch (err) {
+    console.error("Error updating/creating patient:", err);
+    return res
+      .status(500)
+      .json({ message: "Failed to update patient profile" });
+  }
+});
+
+// MARK user.profileCompleted = true
+app.put("/users/:id/profile-completed", async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    const user = await User.findByIdAndUpdate(
+      id,
+      { $set: { profileCompleted: true } },
+      { new: true }
+    );
+
+    if (!user) {
+      return res.status(404).json({ message: "User not found" });
+    }
+
+    console.log("✅ User profileCompleted updated:", user._id);
+    return res.json(user);
+  } catch (err) {
+    console.error("Error updating profileCompleted:", err);
+    return res
+      .status(500)
+      .json({ message: "Failed to update profile status" });
+  }
+});
+
 
 /* ===============================
  *         START SERVER
