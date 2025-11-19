@@ -1,5 +1,3 @@
-
-
 // 1. Import required libraries
 const express = require("express");
 const cors = require("cors");
@@ -10,6 +8,8 @@ const DoctorModel = require("./models/Doctor");
 const BillingModel = require("./models/Billing");
 const AppointmentModel = require("./models/Appointment");
 const Service = require("./models/Service");
+const DoctorSessionModel = require("./models/DoctorSession");
+const TaxModel = require("./models/Tax");
 const ADMIN_EMAIL = "admin@onecare.com";
 const ADMIN_PASSWORD = "admin123";
 
@@ -166,9 +166,10 @@ app.delete("/patients/:id", async (req, res) => {
 
 app.get("/dashboard-stats", async (req, res) => {
   try {
-    const [totalPatients , totalDoctors] = await Promise.all([
+    const [totalPatients , totalDoctors,totalAppointment] = await Promise.all([
       PatientModel.countDocuments(),
-      DoctorModel.countDocuments()
+      DoctorModel.countDocuments(),
+      AppointmentModel.countDocuments()
     ]);
 
     res.json({totalDoctors , totalPatients});
@@ -270,6 +271,63 @@ app.post("/doctors/import", upload.single("file"), async (req, res) => {
   }
 });
 
+// ===============================
+//        DOCTOR SESSIONS
+// ===============================
+
+// Get all sessions
+app.get("/doctor-sessions", async (req, res) => {
+  try {
+    const list = await DoctorSessionModel.find().sort({ createdAt: -1 });
+    res.json(list);
+  } catch (err) {
+    console.error("Error fetching doctor sessions:", err);
+    res.status(500).json({ message: "Server error", error: err.message });
+  }
+});
+
+// Create session
+app.post("/doctor-sessions", async (req, res) => {
+  try {
+    const doc = await DoctorSessionModel.create(req.body);
+    res.json({ message: "Doctor session created", data: doc });
+  } catch (err) {
+    console.error("Error creating doctor session:", err);
+    res.status(500).json({ message: "Server error", error: err.message });
+  }
+});
+
+// Update session
+app.put("/doctor-sessions/:id", async (req, res) => {
+  try {
+    const { id } = req.params;
+    const updated = await DoctorSessionModel.findByIdAndUpdate(id, req.body, {
+      new: true,
+    });
+    if (!updated) {
+      return res.status(404).json({ message: "Doctor session not found" });
+    }
+    res.json({ message: "Doctor session updated", data: updated });
+  } catch (err) {
+    console.error("Error updating doctor session:", err);
+    res.status(500).json({ message: "Server error", error: err.message });
+  }
+});
+
+// Delete session
+app.delete("/doctor-sessions/:id", async (req, res) => {
+  try {
+    const { id } = req.params;
+    const deleted = await DoctorSessionModel.findByIdAndDelete(id);
+    if (!deleted) {
+      return res.status(404).json({ message: "Doctor session not found" });
+    }
+    res.json({ message: "Doctor session deleted" });
+  } catch (err) {
+    console.error("Error deleting doctor session:", err);
+    res.status(500).json({ message: "Server error", error: err.message });
+  }
+});
 
 
 // ===============================
@@ -819,6 +877,80 @@ app.put("/appointments/:id/cancel", async (req, res) => {
   }
 });
 
+
+//Tax realted stuff
+
+
+// Get all taxes
+app.get("/taxes", async (req, res) => {
+  try {
+    const list = await TaxModel.find().sort({ createdAt: -1 });
+    res.json(list);
+  } catch (err) {
+    console.error("Error fetching taxes:", err);
+    res.status(500).json({ message: "Server error", error: err.message });
+  }
+});
+
+// Create new tax
+app.post("/taxes", async (req, res) => {
+  try {
+    const payload = req.body;
+
+    // ensure number
+    if (typeof payload.taxRate === "string") {
+      payload.taxRate = parseFloat(payload.taxRate) || 0;
+    }
+
+    const doc = await TaxModel.create(payload);
+    res.json({ message: "Tax created", data: doc });
+  } catch (err) {
+    console.error("Error creating tax:", err);
+    res.status(500).json({ message: "Server error", error: err.message });
+  }
+});
+
+// Update tax (edit or toggle)
+app.put("/taxes/:id", async (req, res) => {
+  try {
+    const { id } = req.params;
+    const payload = req.body;
+
+    if (typeof payload.taxRate === "string") {
+      payload.taxRate = parseFloat(payload.taxRate) || 0;
+    }
+
+    const updated = await TaxModel.findByIdAndUpdate(id, payload, {
+      new: true,
+    });
+
+    if (!updated) {
+      return res.status(404).json({ message: "Tax not found" });
+    }
+
+    res.json({ message: "Tax updated", data: updated });
+  } catch (err) {
+    console.error("Error updating tax:", err);
+    res.status(500).json({ message: "Server error", error: err.message });
+  }
+});
+
+// Delete tax
+app.delete("/taxes/:id", async (req, res) => {
+  try {
+    const { id } = req.params;
+    const deleted = await TaxModel.findByIdAndDelete(id);
+    if (!deleted) {
+      return res.status(404).json({ message: "Tax not found" });
+    }
+    res.json({ message: "Tax deleted" });
+  } catch (err) {
+    console.error("Error deleting tax:", err);
+    res.status(500).json({ message: "Server error", error: err.message });
+  }
+});
+
+
 // ===================================================
 //                      BILL APIs
 // ===================================================
@@ -1084,11 +1216,8 @@ app.get("/bills/:id/pdf", async (req, res) => {
 
 
 
-// ===================================================
-//                   START SERVER
-// ===================================================
 
-// 6. Start the server on port 3001
+// Start the server 
 const PORT = 3001;
 app.listen(PORT, () => {
   console.log("Backend server running on http://localhost:" + PORT);
