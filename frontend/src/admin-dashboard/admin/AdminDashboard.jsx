@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState} from "react";
 import axios from "axios";
 import { useNavigate } from "react-router-dom";
 import AdminLayout from "../layouts/AdminLayout";
@@ -7,6 +7,8 @@ import { FaUserDoctor } from "react-icons/fa6";
 import { FaUserInjured } from "react-icons/fa";
 import { FaCalendarCheck } from "react-icons/fa";
 import { FaMoneyBill1Wave } from "react-icons/fa6";
+import { setFavicon } from "../../utils/setFavicon.js";
+
 
 const AdminDashboard = () => {
   const [stats, setStats] = useState({ totalPatients: 0 });

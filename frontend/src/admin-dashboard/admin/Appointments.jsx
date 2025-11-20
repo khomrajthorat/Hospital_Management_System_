@@ -4,6 +4,7 @@ import AdminLayout from "../layouts/AdminLayout";
 import "bootstrap/dist/css/bootstrap.min.css";
 import { FaDownload } from "react-icons/fa";
 import "../styles/appointments.css";
+import toast from "react-hot-toast"; 
 
 const SLOT_OPTIONS = [
   "09:00 - 09:30 AM",
@@ -213,26 +214,32 @@ const Appointments = () => {
         slot: form.slot,
       };
 
-      if (editId) {
-        await axios.put(`http://localhost:3001/appointments/${editId}`, payload);
-        alert("Appointment updated");
-      } else {
-        const res = await axios.post(
-          "http://localhost:3001/appointments",
-          payload
-        );
-        if (!res.data?.message && !res.data?._id) {
-          alert("Warning: appointment saved but response not standard");
-        } else {
-          alert("Appointment added");
-        }
-      }
+     if (editId) {
+  await toast.promise(
+    axios.put(`http://localhost:3001/appointments/${editId}`, payload),
+    {
+      loading: 'Updating appointment...',
+      success: 'Appointment updated',
+      error: 'Failed to update appointment',
+    }
+  );
+} else {
+  await toast.promise(
+    axios.post("http://localhost:3001/appointments", payload),
+    {
+      loading: 'Saving appointment...',
+      success: 'Appointment added',
+      error: 'Failed to add appointment',
+    }
+  );
+}
+
 
       fetchAppointments();
       closePanel();
     } catch (err) {
       console.error("Save error:", err);
-      alert("Error saving appointment. Check console.");
+      toast.error("Error saving appointment. Check console.");
     }
   };
 
