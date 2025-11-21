@@ -106,7 +106,7 @@ export default function Sidebar({ collapsed = false }) {
           </li>
 
           <li className="nav-item mb-2">
-            <NavLink to="/receptionist" className={linkClass}>
+            <NavLink to="/receptionists" className={linkClass}>
               <FaUsers style={{ minWidth: 20 }} />
               {!collapsed && <span>Receptionist</span>}
             </NavLink>

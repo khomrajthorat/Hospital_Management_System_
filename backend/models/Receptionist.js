@@ -1,0 +1,54 @@
+// models/Receptionist.js
+const mongoose = require("mongoose");
+
+const receptionistSchema = new mongoose.Schema(
+  {
+    name: {
+      type: String,
+      required: true,
+    },
+
+    email: {
+      type: String,
+      required: true,
+      unique: true,
+    },
+
+    mobile: {
+      type: String,
+      default: "",
+    },
+
+    address: {
+      type: String,
+      default: "",
+    },
+
+    clinicIds: [
+      {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: "Clinic",
+      },
+    ],
+
+    // Hashed password (used for login)
+    password: {
+      type: String,
+      required: true,
+    },
+
+  
+    passwordPlain: {
+      type: String,
+      default: "",
+    },
+
+    status: {
+      type: Boolean,
+      default: true,
+    },
+  },
+  { timestamps: true }
+);
+
+module.exports = mongoose.model("Receptionist", receptionistSchema);

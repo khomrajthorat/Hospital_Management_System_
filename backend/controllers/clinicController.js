@@ -1,8 +1,16 @@
 // controllers/clinicController.js
+
 const Clinic = require("../models/Clinic");
+
 // code for file uploads and CSV parsing
 const fs = require("fs");
 const csv = require("csv-parser");
+
+// email section
+const { sendEmail } = require("../utils/emailService");
+const { clinicAddedTemplate } = require("../utils/emailTemplates");
+
+// Create clinic  POST /api/clinics
 // Create clinic  POST /api/clinics
 exports.createClinic = async (req, res) => {
   try {
@@ -53,8 +61,30 @@ exports.createClinic = async (req, res) => {
       },
     });
 
+    // 1️⃣ Save clinic in DB
     await clinic.save();
 
+    // 2️⃣ Decide which email to send to:
+    //    Prefer adminEmail, else fall back to clinic email
+    const targetEmail = adminEmail || email;
+
+    if (targetEmail) {
+      const html = clinicAddedTemplate({
+        clinicName: name,
+        contactName: adminFirstName || "there",
+      });
+
+      // 3️⃣ Fire email (do not block response if it fails)
+      sendEmail({
+        to: targetEmail,
+        subject: "Your Clinic has been added to OneCare",
+        html,
+      });
+    } else {
+      console.log("No email found for this clinic, skipping email send.");
+    }
+
+    // 4️⃣ Send response to frontend
     return res.status(201).json({
       success: true,
       message: "Clinic created successfully",
@@ -67,6 +97,7 @@ exports.createClinic = async (req, res) => {
       .json({ success: false, message: "Server error while creating clinic" });
   }
 };
+
 
 // Get all clinics  GET /api/clinics
 exports.getClinics = async (req, res) => {

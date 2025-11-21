@@ -165,7 +165,7 @@ router.post("/preview", async (req, res) => {
         ? selectedServices.join(", ")
         : appt.services || "N/A";
 
-    const totalBill = appt.charges ? `₹${appt.charges}/-` : "Not available";
+    const totalBill = appt.charges ? `Rs.${appt.charges}/-` : "Not available";
 
     const notesText = notesCfg.text || "";
 

@@ -1,0 +1,204 @@
+// controllers/receptionistController.js
+
+const Receptionist = require("../models/Receptionist");
+const Clinic = require("../models/Clinic");
+const bcrypt = require("bcryptjs");
+const generateRandomPassword = require("../utils/generatePassword");
+const sendReceptionistWelcomeEmail = require("../utils/sendReceptionistWelcomeEmail");
+const csv = require("csvtojson");
+
+// ------------------------------------------------------------
+// ADD Receptionist
+// ------------------------------------------------------------
+exports.addReceptionist = async (req, res) => {
+  try {
+    const { name, email, mobile, address, clinicIds, status } = req.body;
+
+    // Check duplicate email
+    const existing = await Receptionist.findOne({ email });
+    if (existing) {
+      return res.status(400).json({ message: "Email already exists" });
+    }
+
+    // Generate password
+    const plainPassword = generateRandomPassword(10);
+    const hashedPassword = await bcrypt.hash(plainPassword, 10);
+
+    const newRecp = new Receptionist({
+      name,
+      email,
+      mobile,
+      address,
+      clinicIds,
+      status,
+      password: hashedPassword,
+      passwordPlain: plainPassword, // 🔑 store plain for resend
+    });
+
+    await newRecp.save();
+
+    // Send Welcome Email with generated password
+    await sendReceptionistWelcomeEmail(email, name, email, plainPassword);
+
+    res.json({
+      message: "Receptionist added successfully",
+      data: newRecp,
+    });
+  } catch (error) {
+    console.log("Add Receptionist Error:", error);
+    res.status(500).json({ message: "Server error" });
+  }
+};
+
+// ------------------------------------------------------------
+// LIST Receptionists
+// ------------------------------------------------------------
+exports.getReceptionists = async (req, res) => {
+  try {
+    const receptionist = await Receptionist.find()
+      .populate("clinicIds", "name")
+      .sort({ createdAt: -1 });
+
+    res.json({ data: receptionist });
+  } catch (error) {
+    res.status(500).json({ message: "Server error" });
+  }
+};
+
+// ------------------------------------------------------------
+// GET Single Receptionist
+// ------------------------------------------------------------
+exports.getReceptionistById = async (req, res) => {
+  try {
+    const recp = await Receptionist.findById(req.params.id).populate(
+      "clinicIds",
+      "name"
+    );
+
+    if (!recp) return res.status(404).json({ message: "Not found" });
+
+    res.json({ data: recp });
+  } catch (error) {
+    res.status(500).json({ message: "Server error" });
+  }
+};
+
+// ------------------------------------------------------------
+// UPDATE Receptionist
+// ------------------------------------------------------------
+exports.updateReceptionist = async (req, res) => {
+  try {
+    const { name, email, mobile, address, clinicIds, status } = req.body;
+
+    const updated = await Receptionist.findByIdAndUpdate(
+      req.params.id,
+      { name, email, mobile, address, clinicIds, status },
+      { new: true }
+    );
+
+    res.json({ message: "Updated successfully", data: updated });
+  } catch (error) {
+    res.status(500).json({ message: "Server error" });
+  }
+};
+
+// ------------------------------------------------------------
+// DELETE Receptionist
+// ------------------------------------------------------------
+exports.deleteReceptionist = async (req, res) => {
+  try {
+    await Receptionist.findByIdAndDelete(req.params.id);
+    res.json({ message: "Receptionist deleted successfully" });
+  } catch (error) {
+    res.status(500).json({ message: "Server error" });
+  }
+};
+
+// ------------------------------------------------------------
+// TOGGLE STATUS
+// ------------------------------------------------------------
+exports.toggleReceptionistStatus = async (req, res) => {
+  try {
+    const recp = await Receptionist.findById(req.params.id);
+    if (!recp) return res.status(404).json({ message: "Not found" });
+
+    recp.status = !recp.status;
+    await recp.save();
+
+    res.json({
+      message: "Status updated",
+      status: recp.status,
+    });
+  } catch (error) {
+    res.status(500).json({ message: "Server error" });
+  }
+};
+
+// ------------------------------------------------------------
+// RESEND CREDENTIALS  → send SAME password again
+// ------------------------------------------------------------
+exports.resendCredentials = async (req, res) => {
+  try {
+    const recp = await Receptionist.findById(req.params.id);
+    if (!recp) return res.status(404).json({ message: "Not found" });
+
+    // If passwordPlain not available (old records)
+    if (!recp.passwordPlain) {
+      return res.status(400).json({
+        message:
+          "Original password not available to resend. Please reset password manually.",
+      });
+    }
+
+    await sendReceptionistWelcomeEmail(
+      recp.email,
+      recp.name,
+      recp.email,
+      recp.passwordPlain
+    );
+
+    res.json({ message: "Credentials resent successfully" });
+  } catch (error) {
+    console.log("Resend Credentials Error:", error);
+    res.status(500).json({ message: "Server error" });
+  }
+};
+
+// ------------------------------------------------------------
+// IMPORT CSV
+// ------------------------------------------------------------
+exports.importReceptionists = async (req, res) => {
+  try {
+    if (!req.file)
+      return res.status(400).json({ message: "No CSV file uploaded" });
+
+    const jsonArray = await csv().fromFile(req.file.path);
+
+    for (let row of jsonArray) {
+      const plainPassword = generateRandomPassword(10);
+      const hashedPassword = await bcrypt.hash(plainPassword, 10);
+
+      const clinicNames = row.clinics?.split(",") || [];
+
+      const clinicIds = await Clinic.find({
+        name: { $in: clinicNames.map((c) => c.trim()) },
+      }).select("_id");
+
+      await Receptionist.create({
+        name: row.name,
+        email: row.email,
+        mobile: row.mobile,
+        address: row.address,
+        clinicIds: clinicIds.map((c) => c._id),
+        status: row.status?.toLowerCase() === "active",
+        password: hashedPassword,
+        passwordPlain: plainPassword, // 🔑 store for resend
+      });
+    }
+
+    res.json({ message: "Import completed successfully" });
+  } catch (error) {
+    console.log("Import Error:", error);
+    res.status(500).json({ message: "Server error" });
+  }
+};

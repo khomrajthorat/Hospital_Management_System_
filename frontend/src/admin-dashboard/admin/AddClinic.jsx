@@ -1,3 +1,4 @@
+// src/admin-dashboard/admin/AddClinic.jsx
 import React, { useEffect, useState } from "react";
 import AdminLayout from "../layouts/AdminLayout";
 import { FaArrowLeft, FaEdit } from "react-icons/fa";
@@ -6,8 +7,18 @@ import axios from "axios";
 import toast, { Toaster } from "react-hot-toast";
 import "../styles/AddClinic.css";
 
+const API_BASE_URL = "http://localhost:3001";
+
+const SPECIALIZATION_OPTIONS = [
+  "General Physician",
+  "Cardiology",
+  "Dermatology",
+  "Orthopedics",
+  "Pediatrics",
+  "Gynecology"
+];
+
 export default function AddClinic() {
-  const API_BASE_URL = "http://localhost:3001";
   const navigate = useNavigate();
   const location = useLocation();
 
@@ -21,9 +32,8 @@ export default function AddClinic() {
   const [clinicContact, setClinicContact] = useState("");
   const [status, setStatus] = useState("Active");
 
-  // ---- Specialties (tags + input) ----
-  const [specialtyInput, setSpecialtyInput] = useState("");
-  const [specialties, setSpecialties] = useState([]);
+  // ---- Specialization (single select) ----
+  const [specialization, setSpecialization] = useState("");
 
   // ---- Address ----
   const [address, setAddress] = useState("");
@@ -53,7 +63,7 @@ export default function AddClinic() {
     (async () => {
       try {
         const res = await axios.get(
-          `http://localhost:3001/api/clinics/${clinicId}`
+          `${API_BASE_URL}/api/clinics/${clinicId}`
         );
         const c = res.data.clinic;
 
@@ -62,7 +72,12 @@ export default function AddClinic() {
         setClinicContact(c.contact || "");
         setStatus(c.status || "Active");
 
-        setSpecialties(c.specialties || []);
+        // specialization from first element of specialties array
+        setSpecialization(
+          Array.isArray(c.specialties) && c.specialties.length > 0
+            ? c.specialties[0]
+            : ""
+        );
 
         setAddress(c.address?.full || "");
         setCity(c.address?.city || "");
@@ -78,32 +93,16 @@ export default function AddClinic() {
 
         if (c.clinicLogo) {
           setClinicLogoPreview(`${API_BASE_URL}/uploads/${c.clinicLogo}`);
-          }
+        }
         if (c.admin?.photo) {
           setAdminPhotoPreview(`${API_BASE_URL}/uploads/${c.admin.photo}`);
-          }
+        }
       } catch (err) {
         console.error("Failed to load clinic:", err);
         toast.error("Failed to load clinic data");
       }
     })();
   }, [isEditing, clinicId]);
-
-  // Add specialty as tag on Enter
-  const handleSpecialtyKey = (e) => {
-    if (e.key === "Enter" && specialtyInput.trim() !== "") {
-      e.preventDefault();
-      const value = specialtyInput.trim();
-      if (!specialties.includes(value)) {
-        setSpecialties((prev) => [...prev, value]);
-      }
-      setSpecialtyInput("");
-    }
-  };
-
-  const removeSpecialty = (spec) => {
-    setSpecialties((prev) => prev.filter((s) => s !== spec));
-  };
 
   const handleFileChange = (e, setFile, setPreview) => {
     const file = e.target.files[0];
@@ -116,6 +115,10 @@ export default function AddClinic() {
   const validateForm = () => {
     if (!name || !clinicEmail || !clinicContact) {
       toast.error("Please fill clinic name, email & contact.");
+      return false;
+    }
+    if (!specialization) {
+      toast.error("Please select a specialization.");
       return false;
     }
     if (!address || !city || !country || !postalCode) {
@@ -144,8 +147,11 @@ export default function AddClinic() {
     form.append("contact", clinicContact);
     form.append("status", status);
 
-    // Specialties as JSON array
-    form.append("specialties", JSON.stringify(specialties));
+    // Specialties as JSON array with single value
+    form.append(
+      "specialties",
+      JSON.stringify(specialization ? [specialization] : [])
+    );
 
     // Address
     form.append("address", address);
@@ -161,14 +167,14 @@ export default function AddClinic() {
     form.append("dob", dob);
     form.append("gender", gender);
 
-    // Files (only append if selected in edit mode)
+    // Files
     if (clinicLogoFile) form.append("clinicLogo", clinicLogoFile);
     if (adminPhotoFile) form.append("adminPhoto", adminPhotoFile);
 
     try {
       const endpoint = isEditing
-        ? `http://localhost:3001/api/clinics/${clinicId}`
-        : "http://localhost:3001/api/clinics";
+        ? `${API_BASE_URL}/api/clinics/${clinicId}`
+        : `${API_BASE_URL}/api/clinics`;
 
       const method = isEditing ? axios.put : axios.post;
 
@@ -187,7 +193,6 @@ export default function AddClinic() {
       navigate("/clinic-list");
     } catch (err) {
       console.error(err);
-      // toast.promise already showed error
     }
   };
 
@@ -251,34 +256,23 @@ export default function AddClinic() {
             </div>
           </div>
 
-          {/* Specialties */}
+          {/* Specialization dropdown */}
           <div className="col-md-4 mb-3">
-            <label className="form-label">Specialties *</label>
-
-            <div className="mb-2">
-              {specialties.map((s, i) => (
-                <div key={i} className="specialty-tag">
-                  {s}
-                  <span onClick={() => removeSpecialty(s)}>×</span>
-                </div>
-              ))}
-            </div>
-
-            <input
-              type="text"
+            <label className="form-label">Specialization *</label>
+            <select
               className="form-control"
-              placeholder="Search / type and press Enter"
-              value={specialtyInput}
-              onChange={(e) => setSpecialtyInput(e.target.value)}
-              onKeyDown={handleSpecialtyKey}
-            />
-
-            <small className="text-primary">
-              Note: Type and press enter to add a new specialization
-            </small>
+              value={specialization}
+              onChange={(e) => setSpecialization(e.target.value)}
+            >
+              <option value="">Select specialization</option>
+              {SPECIALIZATION_OPTIONS.map((opt) => (
+                <option key={opt} value={opt}>
+                  {opt}
+                </option>
+              ))}
+            </select>
           </div>
 
-          {/* Status */}
           <div className="col-md-4 mb-3">
             <label className="form-label">Status *</label>
             <select

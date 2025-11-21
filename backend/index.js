@@ -12,9 +12,13 @@ const DoctorSessionModel = require("./models/DoctorSession");
 const TaxModel = require("./models/Tax");
 const ADMIN_EMAIL = "admin@onecare.com";
 const ADMIN_PASSWORD = "admin123";
+require("dotenv").config();
 
+const { sendEmail } = require("./utils/emailService");
+const { appointmentBookedTemplate } = require("./utils/emailTemplates");
 
-
+//Receptionist Routes
+const receptionistRoutes = require("./routes/receptionistRoutes");
 
 // PDF Libraries
 const { PDFDocument, StandardFonts, rgb } = require("pdf-lib");
@@ -48,7 +52,7 @@ mongoose
 
 //             LOGIN
 
-// 5. Login route (POST /login)
+//  Login route (POST /login)
 app.post("/login", async (req, res) => {
   try {
     const { email, password } = req.body;
@@ -560,7 +564,7 @@ app.get("/appointments/:id/pdf", async (req, res) => {
     const apptStatus = appt.status || "Booked";
     const paymentMode = appt.paymentMode || "Manual";
     const serviceText = appt.services || "N/A";
-    const totalBill = appt.charges ? `₹${appt.charges}/-` : "Not available";
+    const totalBill = appt.charges ? `Rs.${appt.charges}/-` : "Not available";
 
     //A4 PDF Creation
 
@@ -919,11 +923,70 @@ app.post("/appointments", async (req, res) => {
       createdAt: req.body.createdAt ? new Date(req.body.createdAt) : new Date(),
     };
 
+    console.log("📌 New appointment payload:", payload);
+
+    // 1️⃣ Create appointment in DB
     const created = await AppointmentModel.create(payload);
+
+    // 2️⃣ Figure out patient email
+    let targetEmail = payload.patientEmail;
+
+    // If frontend didn’t send patientEmail, try from DB
+    if (!targetEmail && payload.patientId) {
+      try {
+        const patientDoc = await PatientModel.findById(payload.patientId);
+        if (patientDoc && patientDoc.email) {
+          targetEmail = patientDoc.email;
+          console.log("👤 Fetched patient email from DB:", targetEmail);
+        } else {
+          console.log("⚠️ Patient found but no email field.");
+        }
+      } catch (e) {
+        console.log("⚠️ Error fetching patient for email:", e.message);
+      }
+    }
+
+    if (targetEmail) {
+      // Optional: format date to dd/mm/yyyy
+      let formattedDate = payload.date;
+      try {
+        if (payload.date) {
+          formattedDate = new Date(payload.date).toLocaleDateString("en-GB");
+        }
+      } catch (e) {
+        console.log("⚠️ Date format issue, using raw date:", payload.date);
+      }
+
+      const html = appointmentBookedTemplate({
+        patientName: payload.patientName,
+        doctorName: payload.doctorName,
+        clinicName: payload.clinic,
+        date: formattedDate,
+        time: payload.time,
+        services: payload.services,
+      });
+
+      console.log("📧 Preparing to send appointment email to:", targetEmail);
+
+      // 3️⃣ Fire email (non-blocking)
+      sendEmail({
+        to: targetEmail,
+        subject: "Your Appointment is Confirmed | OneCare",
+        html,
+      });
+    } else {
+      console.log(
+        "🚫 No email available for this appointment (no patientEmail and no email in DB). Skipping email."
+      );
+    }
+
+    // 4️⃣ Response stays same as before
     return res.status(201).json(created);
   } catch (err) {
     console.error("Error creating appointment:", err);
-    return res.status(500).json({ message: "Server error", error: err.message });
+    return res
+      .status(500)
+      .json({ message: "Server error", error: err.message });
   }
 });
 
@@ -1331,6 +1394,10 @@ app.get("/patients/by-user/:userId", async (req, res) => {
     return res.status(500).json({ message: "Server error" });
   }
 });
+
+// Receptionist 
+
+app.use("/api/receptionists", receptionistRoutes);
 
 // Start the server 
 const PORT = 3001;

@@ -16,6 +16,15 @@ import "../styles/ClinicList.css";
 
 const API_BASE_URL = "http://localhost:3001";
 
+const SPECIALIZATION_OPTIONS = [
+  "General Physician",
+  "Cardiology",
+  "Dermatology",
+  "Orthopedics",
+  "Pediatrics",
+  "Gynecology"
+];
+
 export default function ClinicList() {
   const navigate = useNavigate();
 
@@ -75,8 +84,8 @@ export default function ClinicList() {
   const specializationOptions = useMemo(() => {
     const set = new Set();
     clinics.forEach((c) => {
-      if (Array.isArray(c.specialties) && c.specialties.length > 0) {
-        set.add(c.specialties[0]);
+      if (Array.isArray(c.specialties)) {
+        c.specialties.forEach((s) => set.add(s));
       }
     });
     return [...set];
@@ -352,22 +361,18 @@ export default function ClinicList() {
                       </th>
                       <th>
                         <select
-                          className="form-select form-select-sm"
-                          value={filters.specialization}
-                          onChange={(e) =>
-                            handleFilterChange(
-                              "specialization",
-                              e.target.value
-                            )
-                          }
-                        >
-                          <option value="">All</option>
-                          {specializationOptions.map((s) => (
-                            <option key={s} value={s}>
-                              {s}
-                            </option>
-                          ))}
-                        </select>
+                           className="form-select form-select-sm"
+                           value={filters.specialization}
+                           onChange={(e) => handleFilterChange("specialization", e.target.value)}
+                           >
+                            <option value="">All</option>
+                           {SPECIALIZATION_OPTIONS.map((s) => (
+                           <option key={s} value={s}>
+                           {s}
+                               </option>
+                             ))}
+                           </select>
+
                       </th>
                       <th>
                         <input

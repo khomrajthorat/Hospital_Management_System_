@@ -39,6 +39,11 @@ import DoctorAppointments from "./doctor-dashboard/doctor/DoctorAppointments";
 import DoctorServices from "./doctor-dashboard/doctor/DoctorServices";
 import DoctorAppointmentDetails from "./doctor-dashboard/doctor/DoctorAppointmentDetails";
 
+
+// Receptionist
+import AddReceptionist from "./admin-dashboard/admin/AddReceptionist.jsx";
+import ReceptionistList from "./admin-dashboard/admin/ReceptionistList.jsx";
+
 /* PDF Editor */
 import PdfEditor from "./pdf-editor/PdfEditor";
 
@@ -181,6 +186,14 @@ function App() {
         {/* Others */}
         <Route path="/reception-dashboard" element={<ReptionistDashboard />} />
         <Route path="/pdf-editor" element={<PdfEditor />} />
+        
+        {/* Receptionist Section */}
+        <Route path="/receptionists" element={
+          <ReceptionistList sidebarCollapsed={sidebarCollapsed} toggleSidebar={toggleSidebar} />
+        } />
+        <Route path="/add-receptionist" element={
+          <AddReceptionist sidebarCollapsed={sidebarCollapsed} toggleSidebar={toggleSidebar} />
+        } />
 
         {/* Auth */}
         <Route path="/" element={<Login />} />
