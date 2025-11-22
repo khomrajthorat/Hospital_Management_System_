@@ -3,6 +3,8 @@ import { Routes, Route, useLocation } from "react-router-dom";
 import "bootstrap/dist/css/bootstrap.min.css";
 import { Toaster } from "react-hot-toast";
 import { setFavicon } from "./utils/setFavicon.js";
+import 'react-phone-input-2/lib/style.css';
+
 
 /* Auth */
 import Login from "./auth/Login";
