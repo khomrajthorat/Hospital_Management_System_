@@ -1,7 +1,7 @@
 // src/pages/receptionist/ReceptionistChangePassword.jsx
 import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import toast from "react-hot-toast";
+import { toast } from "react-hot-toast";
 
 const API_BASE = "http://localhost:3001";
 
@@ -42,60 +42,64 @@ function ReceptionistChangePassword() {
     }
   }, [navigate]);
 
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    if (!authUser) return;
+  // src/pages/receptionist/ReceptionistChangePassword.jsx
 
-    if (!newPassword || !confirmPassword) {
-      toast.error("Please fill all fields");
-      return;
-    }
+const handleSubmit = async (e) => {
+  e.preventDefault();
+  if (!authUser) return;
 
-    if (newPassword.length < 6) {
-      toast.error("Password must be at least 6 characters");
-      return;
-    }
+  if (!newPassword || !confirmPassword) {
+    toast.error("Please fill all fields");
+    return;
+  }
 
-    if (newPassword !== confirmPassword) {
-      toast.error("Passwords do not match");
-      return;
-    }
+  if (newPassword.length < 6) {
+    toast.error("Password must be at least 6 characters");
+    return;
+  }
 
-    try {
-      setSubmitting(true);
-      const res = await fetch(
-        `${API_BASE}/receptionists/change-password/${authUser.id}`,
-        {
-          method: "PUT",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ newPassword }),
-        }
-      );
+  if (newPassword !== confirmPassword) {
+    toast.error("Passwords do not match");
+    return;
+  }
 
-      const data = await res.json().catch(() => ({}));
+  try {
+    setSubmitting(true);
 
-      if (!res.ok) {
-        toast.error(data.message || "Failed to update password");
-        setSubmitting(false);
-        return;
-      }
+    // ✅ Correct URL (no /auth prefix because app.use("/", authRoutes))
+    const url = `${API_BASE}/receptionists/change-password/${authUser.id}`;
+    console.log("Calling change password API:", url);
 
-      toast.success("Password updated successfully");
+    const res = await fetch(url, {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ newPassword }),
+    });
 
-      // Update localStorage flag so next login goes directly to dashboard
-      const updatedUser = { ...authUser, mustChangePassword: false };
-      localStorage.setItem("authUser", JSON.stringify(updatedUser));
+    const data = await res.json().catch(() => ({}));
 
-      setTimeout(() => {
-        navigate("/reception-dashboard");
-      }, 800);
-    } catch (err) {
-      console.error("Change password error:", err);
-      toast.error("Server error while updating password");
-    } finally {
+    if (!res.ok) {
+      toast.error(data.message || "Failed to update password");
       setSubmitting(false);
+      return;
     }
-  };
+
+    toast.success("Password updated successfully");
+
+    const updatedUser = { ...authUser, mustChangePassword: false };
+    localStorage.setItem("authUser", JSON.stringify(updatedUser));
+
+    setTimeout(() => {
+      navigate("/reception-dashboard");
+    }, 800);
+  } catch (err) {
+    console.error("Change password error:", err);
+    toast.error("Server error while updating password");
+  } finally {
+    setSubmitting(false);
+  }
+};
+
 
   if (!authUser) {
     return null; // or a loader

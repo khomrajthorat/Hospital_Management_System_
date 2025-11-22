@@ -8,22 +8,36 @@ const User = require("../models/User");
 const Receptionist = require("../models/Receptionist");
 const PatientModel = require("../models/Patient");
 
-// Static Admin Credentials
+// Static admin credentials (simple built-in admin)
 const ADMIN_EMAIL = "admin@onecare.com";
 const ADMIN_PASSWORD = "admin123";
 
-/* ============================================
- *                 LOGIN
- * ============================================ */
+// Helper to check password for both hashed and plain text cases
+async function checkPassword(inputPassword, storedPassword) {
+  // Try bcrypt compare first
+  try {
+    const match = await bcrypt.compare(inputPassword, storedPassword);
+    if (match) return true;
+  } catch (err) {
+    console.log("bcrypt compare error, will try plain compare");
+  }
+
+  // Fallback: plain string compare (for old records)
+  if (inputPassword === storedPassword) {
+    return true;
+  }
+
+  return false;
+}
+
+// Login route (admin, receptionist, patient, doctor)
 router.post("/login", async (req, res) => {
   try {
     const { email, password } = req.body;
 
-    console.log("LOGIN ATTEMPT:", email, password);
+    console.log("LOGIN ATTEMPT:", email);
 
-    /* -------------------------------------------
-     * 1. ADMIN LOGIN
-     * ------------------------------------------- */
+    // 1) Check static admin
     if (email === ADMIN_EMAIL && password === ADMIN_PASSWORD) {
       console.log("ADMIN LOGIN SUCCESS");
       return res.json({
@@ -35,16 +49,14 @@ router.post("/login", async (req, res) => {
       });
     }
 
-    /* -------------------------------------------
-     * 2. RECEPTIONIST (CHECK FIRST)
-     * ------------------------------------------- */
+    // 2) Check receptionist collection first
     const receptionist = await Receptionist.findOne({ email });
 
     if (receptionist) {
       console.log("FOUND IN RECEPTIONIST COLLECTION");
 
-      const match = await bcrypt.compare(password, receptionist.password);
-      console.log("Receptionist Password Match:", match);
+      const match = await checkPassword(password, receptionist.password);
+      console.log("Receptionist password valid:", match);
 
       if (!match) {
         return res.status(401).json({ message: "Invalid email or password" });
@@ -60,17 +72,14 @@ router.post("/login", async (req, res) => {
       });
     }
 
-    /* -------------------------------------------
-     * 3. USER COLLECTION (Patients + Doctors)
-     * ------------------------------------------- */
+    // 3) If not receptionist, check User collection (patients + doctors)
     const user = await User.findOne({ email });
 
     if (user) {
       console.log("FOUND IN USER COLLECTION:", user.role);
 
-      // ✅ Use bcrypt for User passwords too
-      const match = await bcrypt.compare(password, user.password);
-      console.log("User Password Match:", match);
+      const match = await checkPassword(password, user.password);
+      console.log("User password valid:", match);
 
       if (!match) {
         return res.status(401).json({ message: "Invalid email or password" });
@@ -89,7 +98,6 @@ router.post("/login", async (req, res) => {
       });
     }
 
-    /* ------------------------------------------- */
     console.log("NO USER FOUND — INVALID LOGIN");
     return res.status(401).json({ message: "Invalid email or password" });
   } catch (err) {
@@ -98,9 +106,7 @@ router.post("/login", async (req, res) => {
   }
 });
 
-/* ============================================
- *                 SIGNUP (PATIENT)
- * ============================================ */
+// Signup for normal patient user
 router.post("/signup", async (req, res) => {
   try {
     const { name, email, password } = req.body;
@@ -114,7 +120,6 @@ router.post("/signup", async (req, res) => {
       return res.status(400).json({ message: "Email already registered" });
     }
 
-    // ✅ Hash password for User
     const hashedPassword = await bcrypt.hash(password, 10);
 
     const newUser = await User.create({
@@ -125,6 +130,7 @@ router.post("/signup", async (req, res) => {
       profileCompleted: false,
     });
 
+    // Create basic patient record linked with this user
     await PatientModel.create({
       userId: newUser._id,
       firstName: name,
@@ -141,6 +147,49 @@ router.post("/signup", async (req, res) => {
   } catch (err) {
     console.error("Signup error:", err);
     res.status(500).json({ message: "Server error during signup" });
+  }
+});
+
+// Change password for receptionist on first login
+router.put("/receptionists/change-password/:id", async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { newPassword } = req.body;
+
+    if (!newPassword || newPassword.length < 6) {
+      return res.status(400).json({
+        message: "New password must be at least 6 characters long",
+      });
+    }
+
+    const hashedPassword = await bcrypt.hash(newPassword, 10);
+
+    const receptionist = await Receptionist.findByIdAndUpdate(
+      id,
+      {
+        password: hashedPassword,
+        mustChangePassword: false,
+      },
+      { new: true }
+    );
+
+    if (!receptionist) {
+      return res.status(404).json({ message: "Receptionist not found" });
+    }
+
+    return res.json({
+      message: "Password updated successfully",
+      id: receptionist._id,
+      email: receptionist.email,
+      role: "receptionist",
+      name: receptionist.name,
+      mustChangePassword: receptionist.mustChangePassword,
+    });
+  } catch (err) {
+    console.error("Receptionist change password error:", err);
+    res.status(500).json({
+      message: "Server error while updating password",
+    });
   }
 });
 
