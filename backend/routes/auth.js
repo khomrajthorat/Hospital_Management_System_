@@ -25,6 +25,7 @@ router.post("/login", async (req, res) => {
      * 1. ADMIN LOGIN
      * ------------------------------------------- */
     if (email === ADMIN_EMAIL && password === ADMIN_PASSWORD) {
+      console.log("ADMIN LOGIN SUCCESS");
       return res.json({
         id: "admin-id",
         name: "System Admin",
@@ -35,7 +36,7 @@ router.post("/login", async (req, res) => {
     }
 
     /* -------------------------------------------
-     * 2. RECEPTIONIST (CHECK FIRST!)
+     * 2. RECEPTIONIST (CHECK FIRST)
      * ------------------------------------------- */
     const receptionist = await Receptionist.findOne({ email });
 
@@ -43,7 +44,7 @@ router.post("/login", async (req, res) => {
       console.log("FOUND IN RECEPTIONIST COLLECTION");
 
       const match = await bcrypt.compare(password, receptionist.password);
-      console.log("Password Match:", match);
+      console.log("Receptionist Password Match:", match);
 
       if (!match) {
         return res.status(401).json({ message: "Invalid email or password" });
@@ -54,6 +55,7 @@ router.post("/login", async (req, res) => {
         email: receptionist.email,
         role: "receptionist",
         name: receptionist.name,
+        mustChangePassword: receptionist.mustChangePassword,
         profileCompleted: true,
       });
     }
@@ -66,8 +68,11 @@ router.post("/login", async (req, res) => {
     if (user) {
       console.log("FOUND IN USER COLLECTION:", user.role);
 
-      if (user.password !== password) {
-        console.log("USER PASSWORD MISMATCH");
+      // ✅ Use bcrypt for User passwords too
+      const match = await bcrypt.compare(password, user.password);
+      console.log("User Password Match:", match);
+
+      if (!match) {
         return res.status(401).json({ message: "Invalid email or password" });
       }
 
@@ -77,13 +82,16 @@ router.post("/login", async (req, res) => {
         role: user.role,
         name: user.name,
         profileCompleted: user.profileCompleted,
+        mustChangePassword:
+          typeof user.mustChangePassword === "boolean"
+            ? user.mustChangePassword
+            : false,
       });
     }
 
     /* ------------------------------------------- */
     console.log("NO USER FOUND — INVALID LOGIN");
     return res.status(401).json({ message: "Invalid email or password" });
-
   } catch (err) {
     console.error("Login error:", err);
     res.status(500).json({ message: "Server error during login" });
@@ -106,9 +114,12 @@ router.post("/signup", async (req, res) => {
       return res.status(400).json({ message: "Email already registered" });
     }
 
+    // ✅ Hash password for User
+    const hashedPassword = await bcrypt.hash(password, 10);
+
     const newUser = await User.create({
       email,
-      password, // plain password (as per your existing system)
+      password: hashedPassword,
       role: "patient",
       name,
       profileCompleted: false,
@@ -127,7 +138,6 @@ router.post("/signup", async (req, res) => {
       name: newUser.name,
       profileCompleted: newUser.profileCompleted,
     });
-
   } catch (err) {
     console.error("Signup error:", err);
     res.status(500).json({ message: "Server error during signup" });

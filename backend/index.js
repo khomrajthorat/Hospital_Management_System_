@@ -23,6 +23,7 @@ const authRoutes = require("./routes/auth");
 //Receptionist Routes
 const receptionistRoutes = require("./routes/receptionistRoutes");
 
+
 // PDF Libraries
 const { PDFDocument, StandardFonts, rgb } = require("pdf-lib");
 const QRCode = require("qrcode");
@@ -1323,6 +1324,7 @@ app.get("/patients/by-user/:userId", async (req, res) => {
 // Receptionist 
 
 app.use("/api/receptionists", receptionistRoutes);
+
 
 // Start the server 
 const PORT = 3001;
