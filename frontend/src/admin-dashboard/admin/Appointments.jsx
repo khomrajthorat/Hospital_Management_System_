@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo, useState } from "react";
 import axios from "axios";
-import AdminLayout from "../layouts/AdminLayout";
+import Sidebar from "../components/Sidebar";
+import Navbar from "../components/Navbar";
 import "bootstrap/dist/css/bootstrap.min.css";
 import { FaDownload } from "react-icons/fa";
 import "../styles/appointments.css";
@@ -9,7 +10,7 @@ import { useNavigate } from "react-router-dom";
 
 const API_BASE = "http://localhost:3001";
 
-const Appointments = () => {
+const Appointments = ({ sidebarCollapsed = false, toggleSidebar }) => {
   const navigate = useNavigate();
 
   const [appointments, setAppointments] = useState([]);
@@ -19,7 +20,6 @@ const Appointments = () => {
   const [panelOpen, setPanelOpen] = useState(false);
 
   const [tab, setTab] = useState("all");
-
   const [searchTerm, setSearchTerm] = useState("");
 
   const [filters, setFilters] = useState({
@@ -417,589 +417,621 @@ const Appointments = () => {
 
   // ------------------ JSX ------------------
   return (
-    <AdminLayout>
-      <div className="container-fluid py-3">
-        {/* header area */}
-        <div className="d-flex justify-content-between align-items-center mb-3 appointments-header">
-          <div>
-            <h4 className="fw-bold text-primary mb-1">Appointment</h4>
-            <div
-              className="btn-group btn-sm appointments-tabs"
-              role="group"
-              aria-label="tabs"
-            >
-              <button
-                type="button"
-                className={`btn btn-sm ${
-                  tab === "all" ? "btn-primary active" : "btn-outline-primary"
-                }`}
-                onClick={() => setTab("all")}
-              >
-                ALL
-              </button>
-              <button
-                type="button"
-                className={`btn btn-sm ${
-                  tab === "upcoming"
-                    ? "btn-primary active"
-                    : "btn-outline-primary"
-                }`}
-                onClick={() => setTab("upcoming")}
-              >
-                UPCOMING
-              </button>
-              <button
-                type="button"
-                className={`btn btn-sm ${
-                  tab === "past"
-                    ? "btn-primary active"
-                    : "btn-outline-primary"
-                }`}
-                onClick={() => setTab("past")}
-              >
-                PAST
-              </button>
-            </div>
-          </div>
+    <div className="d-flex">
+      {/* LEFT SIDEBAR */}
+      <Sidebar collapsed={sidebarCollapsed} />
 
-          <div className="d-flex gap-2 appointments-header-actions">
-            <button
-              className="btn btn-sm btn-add-appointment"
-              onClick={openAddForm}
-            >
-              {panelOpen && !editId ? "Close form" : "Add appointment"}
-            </button>
+      {/* MAIN CONTENT */}
+      <div
+        className="flex-grow-1 main-content-transition"
+        style={{
+          marginLeft: sidebarCollapsed ? 64 : 250,
+          minHeight: "100vh",
+        }}
+      >
+        <Navbar toggleSidebar={toggleSidebar} />
 
-            <button
-              className={`btn btn-sm btn-filter-toggle ${
-                filtersOpen ? "active" : ""
-              }`}
-              onClick={() => setFiltersOpen((s) => !s)}
-            >
-              Filters
-            </button>
+        <div className="container-fluid py-3">
+          {/* HEADER */}
+          <div className="d-flex justify-content-between align-items-center mb-3 appointments-header">
+            <div>
+              <h4 className="fw-bold text-primary mb-1">Appointment</h4>
 
-            <button
-              className="btn btn-sm btn-import"
-              onClick={openImportModal}
-            >
-              <FaDownload className="me-1" /> Import data
-            </button>
-          </div>
-        </div>
-
-        {/* filter panel */}
-        <div className={`filter-panel ${filtersOpen ? "open" : ""}`}>
-          <div className="p-3">
-            <div className="row g-3">
-              <div className="col-md-3">
-                <label className="form-label">Select Date</label>
-                <input
-                  type="date"
-                  className="form-control"
-                  value={filters.date}
-                  onChange={(e) =>
-                    setFilters((p) => ({ ...p, date: e.target.value }))
-                  }
-                />
-              </div>
-
-              <div className="col-md-3">
-                <label className="form-label">Select Clinic</label>
-                <select
-                  className="form-select"
-                  value={filters.clinic}
-                  onChange={(e) =>
-                    setFilters((p) => ({ ...p, clinic: e.target.value }))
-                  }
-                >
-                  <option value="">All</option>
-                  {clinics.map((c) => (
-                    <option key={c._id} value={c.name}>
-                      {c.name}
-                    </option>
-                  ))}
-                </select>
-              </div>
-
-              <div className="col-md-3">
-                <label className="form-label">Select Patient</label>
-                <select
-                  className="form-select"
-                  value={filters.patient}
-                  onChange={(e) =>
-                    setFilters((p) => ({ ...p, patient: e.target.value }))
-                  }
-                >
-                  <option value="">All</option>
-                  {patients.map((p) => (
-                    <option
-                      key={p._id}
-                      value={`${p.firstName} ${p.lastName}`}
-                    >
-                      {p.firstName} {p.lastName}
-                    </option>
-                  ))}
-                </select>
-              </div>
-
-              <div className="col-md-3">
-                <label className="form-label">Select Doctor</label>
-                <select
-                  className="form-select"
-                  value={filters.doctor}
-                  onChange={(e) =>
-                    setFilters((p) => ({ ...p, doctor: e.target.value }))
-                  }
-                >
-                  <option value="">All</option>
-                  {doctors.map((d) => (
-                    <option
-                      key={d._id}
-                      value={`${d.firstName} ${d.lastName}`}
-                    >
-                      {d.firstName} {d.lastName}
-                    </option>
-                  ))}
-                </select>
-              </div>
-
-              <div className="col-md-3">
-                <label className="form-label">Select status</label>
-                <select
-                  className="form-select"
-                  value={filters.status}
-                  onChange={(e) =>
-                    setFilters((p) => ({ ...p, status: e.target.value }))
-                  }
-                >
-                  <option value="">All</option>
-                  <option value="booked">Booked</option>
-                  <option value="upcoming">Upcoming</option>
-                  <option value="completed">Completed</option>
-                  <option value="cancelled">Cancelled</option>
-                </select>
-              </div>
-            </div>
-
-            <div className="mt-3 d-flex justify-content-end gap-2">
-              <button className="btn btn-outline-secondary" onClick={clearFilters}>
-                Clear
-              </button>
-              <button className="btn btn-primary" onClick={applyFilters}>
-                Apply filters
-              </button>
-            </div>
-          </div>
-        </div>
-
-        {/* ADD / EDIT PANEL */}
-        <div className={`form-panel appointments-form ${panelOpen ? "open" : ""}`}>
-          <div className="p-3">
-            <form onSubmit={handleSave}>
-              <div className="d-flex justify-content-between align-items-center mb-2">
-                <h5 className="mb-0 fw-bold">
-                  {editId ? "Edit Appointment" : "Add Appointment"}
-                </h5>
-              </div>
-              <div className="row g-3">
-                {/* LEFT COLUMN */}
-                <div className="col-lg-6">
-                  <div className="row g-3">
-                    <div className="col-md-12">
-                      <label className="form-label">Select Clinic *</label>
-                      <select
-                        name="clinic"
-                        className="form-select"
-                        value={form.clinic}
-                        onChange={handleFormChange}
-                        required
-                      >
-                        <option value="">Select</option>
-                        {clinics.map((c) => (
-                          <option key={c._id} value={c.name}>
-                            {c.name}
-                          </option>
-                        ))}
-                      </select>
-                    </div>
-
-                    <div className="col-md-12">
-                      <label className="form-label">Doctor *</label>
-                      <div className="d-flex justify-content-between align-items-center">
-                        <select
-                          name="doctor"
-                          className="form-select"
-                          value={form.doctor}
-                          onChange={handleFormChange}
-                          required
-                        >
-                          <option value="">Search</option>
-                          {form.doctor &&
-                            !doctors.some(
-                              (d) =>
-                                `${d.firstName} ${d.lastName}` === form.doctor
-                            ) && (
-                              <option value={form.doctor}>{form.doctor}</option>
-                            )}
-                          {doctors.map((d) => (
-                            <option
-                              key={d._id}
-                              value={`${d.firstName} ${d.lastName}`}
-                            >
-                              {d.firstName} {d.lastName}
-                            </option>
-                          ))}
-                        </select>
-                      </div>
-                    </div>
-
-                    <div className="col-md-12">
-                      <label className="form-label">Service *</label>
-                      <div className="d-flex justify-content-between align-items-center">
-                        <select
-                          name="service"
-                          className="form-select"
-                          value={form.service}
-                          onChange={handleFormChange}
-                          required
-                        >
-                          <option value="">Service</option>
-                          {form.service &&
-                            !servicesList.some((s) => s.name === form.service) && (
-                              <option value={form.service}>
-                                {form.service}
-                              </option>
-                            )}
-                          {servicesList.map((s) => (
-                            <option key={s._id} value={s.name}>
-                              {s.name}
-                            </option>
-                          ))}
-                        </select>
-                        <button
-                          type="button"
-                          className="btn btn-link p-0 ms-2 small-link"
-                          onClick={() => navigate("/services")}
-                        >
-                          + Add Service
-                        </button>
-                      </div>
-                    </div>
-
-                    <div className="col-md-12">
-                      <label className="form-label">Appointment Date *</label>
-                      <input
-                        name="date"
-                        type="date"
-                        className="form-control"
-                        value={form.date}
-                        onChange={handleFormChange}
-                        required
-                      />
-                    </div>
-
-                    <div className="col-md-12">
-                      <label className="form-label">Patient *</label>
-                      <div className="d-flex justify-content-between align-items-center">
-                        <select
-                          name="patient"
-                          className="form-select"
-                          value={form.patient}
-                          onChange={handleFormChange}
-                          required
-                        >
-                          <option value="">Search</option>
-                          {form.patient &&
-                            !patients.some(
-                              (p) =>
-                                `${p.firstName} ${p.lastName}` === form.patient
-                            ) && (
-                              <option value={form.patient}>
-                                {form.patient}
-                              </option>
-                            )}
-                          {patients.map((p) => (
-                            <option
-                              key={p._id}
-                              value={`${p.firstName} ${p.lastName}`}
-                            >
-                              {p.firstName} {p.lastName}
-                            </option>
-                          ))}
-                        </select>
-                        <button
-                          type="button"
-                          className="btn btn-link p-0 ms-2 small-link"
-                          onClick={() => navigate("/patients")}
-                        >
-                          + Add patient
-                        </button>
-                      </div>
-                    </div>
-
-                    <div className="col-md-12">
-                      <label className="form-label">Status *</label>
-                      <select
-                        name="status"
-                        className="form-select"
-                        value={form.status}
-                        onChange={handleFormChange}
-                        required
-                      >
-                        <option value="booked">Booked</option>
-                        <option value="upcoming">Upcoming</option>
-                        <option value="completed">Completed</option>
-                        <option value="cancelled">Cancelled</option>
-                      </select>
-                    </div>
-                  </div>
-                </div>
-
-                {/* RIGHT COLUMN */}
-                <div className="col-lg-6">
-                  <label className="form-label">Available Slot *</label>
-                  <div className="available-slot-box border rounded p-3 mb-3">
-                    {showSlots ? (
-                      <div className="d-flex flex-wrap gap-2">
-                        {availableSlots.map((slot) => (
-                          <button
-                            key={slot}
-                            type="button"
-                            className={`btn btn-sm ${
-                              form.slot === slot
-                                ? "btn-primary"
-                                : "btn-outline-primary"
-                            }`}
-                            onClick={() =>
-                              setForm((p) => ({ ...p, slot: slot }))
-                            }
-                          >
-                            {slot}
-                          </button>
-                        ))}
-                      </div>
-                    ) : (
-                      <div className="text-center text-muted">
-                        No time slots found
-                      </div>
-                    )}
-                    {isSunday && form.date && (
-                      <div className="text-danger small mt-2">
-                        Clinic closed on Sunday
-                      </div>
-                    )}
-                  </div>
-
-                  <label className="form-label">Service Detail (Price)</label>
-                  <input
-                    name="servicesDetail"
-                    className="form-control mb-3"
-                    placeholder="Service price"
-                    value={form.servicesDetail}
-                    onChange={handleFormChange}
-                  />
-
-                  <label className="form-label">Tax</label>
-                  <input
-                    className="form-control mb-3"
-                    value="Tax not available"
-                    disabled
-                  />
-                </div>
-              </div>
-
-              <div className="d-flex justify-content-end gap-2 mt-3">
+              <div className="btn-group btn-sm appointments-tabs">
                 <button
                   type="button"
-                  className="btn btn-outline-secondary"
-                  onClick={closePanel}
+                  className={`btn btn-sm btn-outline-primary ${
+                    tab === "all" ? "active" : ""
+                  }`}
+                  onClick={() => setTab("all")}
                 >
-                  Cancel
+                  ALL
                 </button>
-                <button type="submit" className="btn btn-primary">
-                  {editId ? "Update" : "Save"}
+                <button
+                  type="button"
+                  className={`btn btn-sm btn-outline-primary ${
+                    tab === "upcoming" ? "active" : ""
+                  }`}
+                  onClick={() => setTab("upcoming")}
+                >
+                  UPCOMING
                 </button>
-              </div>
-            </form>
-          </div>
-        </div>
-
-        {/* main card: search + table */}
-        <div className="card shadow-sm p-3 mt-3">
-          <div className="d-flex justify-content-between align-items-center mb-3">
-            <div style={{ maxWidth: 420, width: "100%" }}>
-              <div className="input-group">
-                <input
-                  type="text"
-                  className="form-control"
-                  placeholder="Search by patient, clinic, doctor or services"
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                />
+                <button
+                  type="button"
+                  className={`btn btn-sm btn-outline-primary ${
+                    tab === "past" ? "active" : ""
+                  }`}
+                  onClick={() => setTab("past")}
+                >
+                  PAST
+                </button>
               </div>
             </div>
-            <div></div>
+
+            <div className="d-flex gap-2 appointments-header-actions">
+              <button
+                className="btn btn-primary btn-sm"
+                onClick={openAddForm}
+              >
+                {panelOpen && !editId ? "Close form" : "Add Appointment"}
+              </button>
+              <button
+                className={`btn btn-outline-secondary btn-sm ${
+                  filtersOpen ? "active" : ""
+                }`}
+                onClick={() => setFiltersOpen((s) => !s)}
+              >
+                Filters
+              </button>
+              <button
+                className="btn btn-outline-secondary btn-sm"
+                onClick={openImportModal}
+              >
+                <FaDownload className="me-1" /> Import Data
+              </button>
+            </div>
           </div>
 
-          <div style={{ minHeight: 180 }}>
-            {loading ? (
-              <div className="text-center py-5">Loading...</div>
-            ) : filteredAppointments.length === 0 ? (
-              <div className="text-center py-5 text-muted">
-                No Appointments Found
-              </div>
-            ) : (
-              <div className="table-responsive">
-                <table className="table table-hover align-middle">
-                  <thead className="table-light">
-                    <tr>
-                      <th>Patient Name</th>
-                      <th>Services</th>
-                      <th>Doctor</th>
-                      <th>Date</th>
-                      <th>Status</th>
-                      <th>Action</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {filteredAppointments.map((a) => {
-                      let badgeClass = "bg-secondary";
-                      if (a.status === "booked") badgeClass = "bg-primary";
-                      else if (a.status === "upcoming") badgeClass = "bg-info";
-                      else if (a.status === "completed")
-                        badgeClass = "bg-success";
-                      else if (a.status === "cancelled")
-                        badgeClass = "bg-danger";
+          {/* FILTER PANEL */}
+          <div className={`filter-panel ${filtersOpen ? "open" : ""}`}>
+            <div className="p-3">
+              <div className="row g-3">
+                <div className="col-md-3">
+                  <label className="form-label">Select Date</label>
+                  <input
+                    type="date"
+                    className="form-control"
+                    value={filters.date}
+                    onChange={(e) =>
+                      setFilters((p) => ({ ...p, date: e.target.value }))
+                    }
+                  />
+                </div>
 
-                      return (
-                        <tr key={a._id}>
-                          <td>{a.patientName}</td>
-                          <td>{a.services}</td>
-                          <td>{a.doctorName}</td>
-                          <td>{a.date}</td>
-                          <td>
-                            <span
-                              className={`badge rounded-pill status-badge ${badgeClass}`}
-                            >
-                              {a.status || "booked"}
-                            </span>
-                          </td>
-                          <td>
-                            <div className="d-flex gap-2 appointments-actions">
-                              <button
-                                className="btn btn-sm btn-edit"
-                                onClick={() => openEditForm(a)}
-                              >
-                                Edit
-                              </button>
-                              <button
-                                className="btn btn-sm btn-pdf"
-                                onClick={() => handlePdf(a._id)}
-                              >
-                                PDF
-                              </button>
-                              <button
-                                className="btn btn-sm btn-delete"
-                                onClick={() => handleDelete(a._id)}
-                              >
-                                Delete
-                              </button>
-                            </div>
-                          </td>
-                        </tr>
-                      );
-                    })}
-                  </tbody>
-                </table>
+                <div className="col-md-3">
+                  <label className="form-label">Select Clinic</label>
+                  <select
+                    className="form-select"
+                    value={filters.clinic}
+                    onChange={(e) =>
+                      setFilters((p) => ({ ...p, clinic: e.target.value }))
+                    }
+                  >
+                    <option value="">All</option>
+                    {clinics.map((c) => (
+                      <option key={c._id} value={c.name}>
+                        {c.name}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                <div className="col-md-3">
+                  <label className="form-label">Select Patient</label>
+                  <select
+                    className="form-select"
+                    value={filters.patient}
+                    onChange={(e) =>
+                      setFilters((p) => ({ ...p, patient: e.target.value }))
+                    }
+                  >
+                    <option value="">All</option>
+                    {patients.map((p) => (
+                      <option
+                        key={p._id}
+                        value={`${p.firstName} ${p.lastName}`}
+                      >
+                        {p.firstName} {p.lastName}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                <div className="col-md-3">
+                  <label className="form-label">Select Doctor</label>
+                  <select
+                    className="form-select"
+                    value={filters.doctor}
+                    onChange={(e) =>
+                      setFilters((p) => ({ ...p, doctor: e.target.value }))
+                    }
+                  >
+                    <option value="">All</option>
+                    {doctors.map((d) => (
+                      <option
+                        key={d._id}
+                        value={`${d.firstName} ${d.lastName}`}
+                      >
+                        {d.firstName} {d.lastName}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                <div className="col-md-3">
+                  <label className="form-label">Select status</label>
+                  <select
+                    className="form-select"
+                    value={filters.status}
+                    onChange={(e) =>
+                      setFilters((p) => ({ ...p, status: e.target.value }))
+                    }
+                  >
+                    <option value="">All</option>
+                    <option value="booked">Booked</option>
+                    <option value="upcoming">Upcoming</option>
+                    <option value="completed">Completed</option>
+                    <option value="cancelled">Cancelled</option>
+                  </select>
+                </div>
               </div>
-            )}
+
+              <div className="mt-3 d-flex justify-content-end gap-2">
+                <button
+                  className="btn btn-outline-secondary"
+                  onClick={clearFilters}
+                >
+                  Reset
+                </button>
+                <button className="btn btn-primary" onClick={applyFilters}>
+                  Apply Filters
+                </button>
+              </div>
+            </div>
           </div>
-        </div>
 
-        {/* IMPORT MODAL */}
-        {importOpen && (
-          <>
-            <div className="modal-backdrop fade show" />
-            <div className="modal fade show d-block" tabIndex="-1">
-              <div className="modal-dialog modal-lg modal-dialog-centered">
-                <div className="modal-content">
-                  <div className="modal-header">
-                    <h5 className="modal-title text-primary">
-                      Appointments Import
-                    </h5>
-                    <button
-                      type="button"
-                      className="btn-close"
-                      onClick={closeImportModal}
-                    ></button>
-                  </div>
-                  <form onSubmit={handleImportSubmit}>
-                    <div className="modal-body">
-                      <div className="row g-3 align-items-center mb-3">
-                        <div className="col-md-4">
-                          <label className="form-label mb-1">Select type</label>
+          {/* ADD / EDIT PANEL */}
+          <div
+            className={`form-panel appointments-form ${
+              panelOpen ? "open" : ""
+            }`}
+          >
+            <div className="p-3">
+              <form onSubmit={handleSave}>
+                <div className="d-flex justify-content-between align-items-center mb-2">
+                  <h5 className="mb-0 fw-bold">
+                    {editId ? "Edit Appointment" : "Add Appointment"}
+                  </h5>
+                </div>
+
+                <div className="row g-3">
+                  {/* LEFT COLUMN */}
+                  <div className="col-lg-6">
+                    <div className="row g-3">
+                      <div className="col-md-12">
+                        <label className="form-label">Select Clinic *</label>
+                        <select
+                          name="clinic"
+                          className="form-select"
+                          value={form.clinic}
+                          onChange={handleFormChange}
+                          required
+                        >
+                          <option value="">Select</option>
+                          {clinics.map((c) => (
+                            <option key={c._id} value={c.name}>
+                              {c.name}
+                            </option>
+                          ))}
+                        </select>
+                      </div>
+
+                      <div className="col-md-12">
+                        <label className="form-label">Doctor *</label>
+                        <div className="d-flex justify-content-between align-items-center">
                           <select
+                            name="doctor"
                             className="form-select"
-                            value={importType}
-                            onChange={(e) => setImportType(e.target.value)}
+                            value={form.doctor}
+                            onChange={handleFormChange}
+                            required
                           >
-                            <option value="csv">CSV</option>
+                            <option value="">Search</option>
+                            {form.doctor &&
+                              !doctors.some(
+                                (d) =>
+                                  `${d.firstName} ${d.lastName}` ===
+                                  form.doctor
+                              ) && (
+                                <option value={form.doctor}>
+                                  {form.doctor}
+                                </option>
+                              )}
+                            {doctors.map((d) => (
+                              <option
+                                key={d._id}
+                                value={`${d.firstName} ${d.lastName}`}
+                              >
+                                {d.firstName} {d.lastName}
+                              </option>
+                            ))}
                           </select>
-                        </div>
-                        <div className="col-md-8">
-                          <label className="form-label mb-1">Upload File</label>
-                          <div className="input-group">
-                            <input
-                              type="file"
-                              className="form-control"
-                              accept=".csv"
-                              onChange={handleFileChange}
-                            />
-                          </div>
                         </div>
                       </div>
 
-                      <p className="mb-2 fw-semibold">
-                        Following field is required in csv file
-                      </p>
-                      <ul className="mb-0">
-                        <li>date (date should be less than current date)</li>
-                        <li>Start time</li>
-                        <li>End time</li>
-                        <li>Service</li>
-                        <li>Clinic name</li>
-                        <li>Doctor name</li>
-                        <li>Patient name</li>
-                        <li>Status</li>
-                      </ul>
+                      <div className="col-md-12">
+                        <label className="form-label">Service *</label>
+                        <div className="d-flex justify-content-between align-items-center">
+                          <select
+                            name="service"
+                            className="form-select"
+                            value={form.service}
+                            onChange={handleFormChange}
+                            required
+                          >
+                            <option value="">Service</option>
+                            {form.service &&
+                              !servicesList.some(
+                                (s) => s.name === form.service
+                              ) && (
+                                <option value={form.service}>
+                                  {form.service}
+                                </option>
+                              )}
+                            {servicesList.map((s) => (
+                              <option key={s._id} value={s.name}>
+                                {s.name}
+                              </option>
+                            ))}
+                          </select>
+                          <button
+                            type="button"
+                            className="btn btn-link p-0 ms-2 small-link"
+                            onClick={() => navigate("/services")}
+                          >
+                            + Add Service
+                          </button>
+                        </div>
+                      </div>
+
+                      <div className="col-md-12">
+                        <label className="form-label">
+                          Appointment Date *
+                        </label>
+                        <input
+                          name="date"
+                          type="date"
+                          className="form-control"
+                          value={form.date}
+                          onChange={handleFormChange}
+                          required
+                        />
+                      </div>
+
+                      <div className="col-md-12">
+                        <label className="form-label">Patient *</label>
+                        <div className="d-flex justify-content-between align-items-center">
+                          <select
+                            name="patient"
+                            className="form-select"
+                            value={form.patient}
+                            onChange={handleFormChange}
+                            required
+                          >
+                            <option value="">Search</option>
+                            {form.patient &&
+                              !patients.some(
+                                (p) =>
+                                  `${p.firstName} ${p.lastName}` ===
+                                  form.patient
+                              ) && (
+                                <option value={form.patient}>
+                                  {form.patient}
+                                </option>
+                              )}
+                            {patients.map((p) => (
+                              <option
+                                key={p._id}
+                                value={`${p.firstName} ${p.lastName}`}
+                              >
+                                {p.firstName} {p.lastName}
+                              </option>
+                            ))}
+                          </select>
+                          <button
+                            type="button"
+                            className="btn btn-link p-0 ms-2 small-link"
+                            onClick={() => navigate("/patients")}
+                          >
+                            + Add patient
+                          </button>
+                        </div>
+                      </div>
+
+                      <div className="col-md-12">
+                        <label className="form-label">Status *</label>
+                        <select
+                          name="status"
+                          className="form-select"
+                          value={form.status}
+                          onChange={handleFormChange}
+                          required
+                        >
+                          <option value="booked">Booked</option>
+                          <option value="upcoming">Upcoming</option>
+                          <option value="completed">Completed</option>
+                          <option value="cancelled">Cancelled</option>
+                        </select>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* RIGHT COLUMN */}
+                  <div className="col-lg-6">
+                    <label className="form-label">Available Slot *</label>
+                    <div className="available-slot-box border rounded p-3 mb-3">
+                      {showSlots ? (
+                        <div className="d-flex flex-wrap gap-2">
+                          {availableSlots.map((slot) => (
+                            <button
+                              key={slot}
+                              type="button"
+                              className={`btn btn-sm ${
+                                form.slot === slot
+                                  ? "btn-primary"
+                                  : "btn-outline-primary"
+                              }`}
+                              onClick={() =>
+                                setForm((p) => ({ ...p, slot: slot }))
+                              }
+                            >
+                              {slot}
+                            </button>
+                          ))}
+                        </div>
+                      ) : (
+                        <div className="text-center text-muted">
+                          {isSunday && form.date
+                            ? "Clinic closed on Sunday"
+                            : "No time slots found"}
+                        </div>
+                      )}
+                      {isSunday && form.date && (
+                        <div className="text-danger small mt-2">
+                          Clinic closed on Sunday
+                        </div>
+                      )}
                     </div>
 
-                    <div className="modal-footer">
-                      <button
-                        type="button"
-                        className="btn btn-outline-secondary"
-                        onClick={closeImportModal}
-                        disabled={importing}
-                      >
-                        Cancel
-                      </button>
-                      <button
-                        type="submit"
-                        className="btn btn-primary"
-                        disabled={importing}
-                      >
-                        {importing ? "Saving..." : "Save"}
-                      </button>
-                    </div>
-                  </form>
+                    <label className="form-label">
+                      Service Detail (Price)
+                    </label>
+                    <input
+                      name="servicesDetail"
+                      className="form-control mb-3"
+                      placeholder="Service price"
+                      value={form.servicesDetail}
+                      onChange={handleFormChange}
+                    />
+
+                    <label className="form-label">Tax</label>
+                    <input
+                      className="form-control mb-3"
+                      value="Tax not available"
+                      disabled
+                    />
+                  </div>
+                </div>
+
+                <div className="d-flex justify-content-end gap-2 mt-3">
+                  <button
+                    type="button"
+                    className="btn btn-outline-secondary"
+                    onClick={closePanel}
+                  >
+                    Cancel
+                  </button>
+                  <button type="submit" className="btn btn-primary">
+                    {editId ? "Update" : "Save"}
+                  </button>
+                </div>
+              </form>
+            </div>
+          </div>
+
+          {/* MAIN TABLE CARD */}
+          <div className="card shadow-sm p-3 mt-3">
+            <div className="d-flex justify-content-between align-items-center mb-3">
+              <div style={{ maxWidth: 420, width: "100%" }}>
+                <div className="input-group">
+                  <input
+                    type="text"
+                    className="form-control"
+                    placeholder="Search by patient, clinic, doctor or services"
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                  />
                 </div>
               </div>
+              <div></div>
             </div>
-          </>
-        )}
+
+            <div style={{ minHeight: 180 }}>
+              {loading ? (
+                <div className="text-center py-5">Loading...</div>
+              ) : filteredAppointments.length === 0 ? (
+                <div className="text-center py-5 text-muted">
+                  No Appointments Found
+                </div>
+              ) : (
+                <div className="table-responsive">
+                  <table className="table table-hover align-middle">
+                    <thead className="table-light">
+                      <tr>
+                        <th>Patient Name</th>
+                        <th>Services</th>
+                        <th>Doctor</th>
+                        <th>Date</th>
+                        <th>Status</th>
+                        <th>Action</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {filteredAppointments.map((a) => {
+                        let badgeClass = "bg-secondary";
+                        if (a.status === "booked") badgeClass = "bg-primary";
+                        else if (a.status === "upcoming")
+                          badgeClass = "bg-info";
+                        else if (a.status === "completed")
+                          badgeClass = "bg-success";
+                        else if (a.status === "cancelled")
+                          badgeClass = "bg-danger";
+
+                        return (
+                          <tr key={a._id}>
+                            <td>{a.patientName}</td>
+                            <td>{a.services}</td>
+                            <td>{a.doctorName}</td>
+                            <td>{a.date}</td>
+                            <td>
+                              <span
+                                className={`badge rounded-pill status-badge ${badgeClass}`}
+                              >
+                                {a.status || "booked"}
+                              </span>
+                            </td>
+                            <td>
+                              <div className="d-flex gap-2 appointments-actions">
+                                <button
+                                  className="btn btn-sm btn-outline-primary"
+                                  onClick={() => openEditForm(a)}
+                                >
+                                  Edit
+                                </button>
+                                <button
+                                  className="btn btn-sm btn-outline-dark"
+                                  onClick={() => handlePdf(a._id)}
+                                >
+                                  PDF
+                                </button>
+                                <button
+                                  className="btn btn-sm btn-outline-danger"
+                                  onClick={() => handleDelete(a._id)}
+                                >
+                                  Delete
+                                </button>
+                              </div>
+                            </td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* IMPORT MODAL */}
+          {importOpen && (
+            <>
+              <div className="modal-backdrop fade show" />
+              <div className="modal fade show d-block" tabIndex="-1">
+                <div className="modal-dialog modal-lg modal-dialog-centered">
+                  <div className="modal-content">
+                    <div className="modal-header">
+                      <h5 className="modal-title text-primary">
+                        Appointments Import
+                      </h5>
+                      <button
+                        type="button"
+                        className="btn-close"
+                        onClick={closeImportModal}
+                      ></button>
+                    </div>
+                    <form onSubmit={handleImportSubmit}>
+                      <div className="modal-body">
+                        <div className="row g-3 align-items-center mb-3">
+                          <div className="col-md-4">
+                            <label className="form-label mb-1">
+                              Select type
+                            </label>
+                            <select
+                              className="form-select"
+                              value={importType}
+                              onChange={(e) =>
+                                setImportType(e.target.value)
+                              }
+                            >
+                              <option value="csv">CSV</option>
+                            </select>
+                          </div>
+                          <div className="col-md-8">
+                            <label className="form-label mb-1">
+                              Upload File
+                            </label>
+                            <div className="input-group">
+                              <input
+                                type="file"
+                                className="form-control"
+                                accept=".csv"
+                                onChange={handleFileChange}
+                              />
+                            </div>
+                          </div>
+                        </div>
+
+                        <p className="mb-2 fw-semibold">
+                          Following field is required in csv file
+                        </p>
+                        <ul className="mb-0">
+                          <li>date (date should be less than current date)</li>
+                          <li>Start time</li>
+                          <li>End time</li>
+                          <li>Service</li>
+                          <li>Clinic name</li>
+                          <li>Doctor name</li>
+                          <li>Patient name</li>
+                          <li>Status</li>
+                        </ul>
+                      </div>
+
+                      <div className="modal-footer">
+                        <button
+                          type="button"
+                          className="btn btn-outline-secondary"
+                          onClick={closeImportModal}
+                          disabled={importing}
+                        >
+                          Cancel
+                        </button>
+                        <button
+                          type="submit"
+                          className="btn btn-primary"
+                          disabled={importing}
+                        >
+                          {importing ? "Saving..." : "Save"}
+                        </button>
+                      </div>
+                    </form>
+                  </div>
+                </div>
+              </div>
+            </>
+          )}
+        </div>
       </div>
-    </AdminLayout>
+    </div>
   );
 };
 
