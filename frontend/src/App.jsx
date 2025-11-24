@@ -26,6 +26,7 @@ import DoctorSession from "./admin-dashboard/admin/DoctorSession";
 import ClinicList from "./admin-dashboard/admin/cliniclist";
 import AddClinic from "./admin-dashboard/admin/AddClinic";
 import AdminProfile from "./admin-dashboard/admin/AdminProfile";
+import AdminChangePassword from "./admin-dashboard/admin/AdminChangePassword";
 
 /* Patient */
 import PatientDashboard from "./patient-dashboard/Patient/PatientDashboard";
@@ -33,6 +34,7 @@ import PatientAppointments from "./patient-dashboard/Patient/PatientAppointments
 import PatientBookAppointment from "./patient-dashboard/Patient/PatientBookAppointment";
 import PatientProfileSetup from "./patient-dashboard/Patient/PatientProfileSetup";
 import PatientProfile from "./patient-dashboard/Patient/PatientProfile.jsx";
+import PatientChangePassword from "./patient-dashboard/Patient/PatientChangePassword";
 
 
 /* Doctor */
@@ -42,6 +44,7 @@ import DoctorAppointments from "./doctor-dashboard/doctor/DoctorAppointments";
 import DoctorServices from "./doctor-dashboard/doctor/DoctorServices";
 import DoctorAppointmentDetails from "./doctor-dashboard/doctor/DoctorAppointmentDetails";
 import DoctorProfile from "./doctor-dashboard/doctor/DoctorProfile.jsx";
+import DoctorChangePassword from "./doctor-dashboard/doctor/DoctorChangePassword";
 
 
 // Receptionist
@@ -130,6 +133,9 @@ function App() {
         <Route path="/admin/profile" element={
           <AdminProfile sidebarCollapsed={sidebarCollapsed} toggleSidebar={toggleSidebar} />
         } />
+        <Route path="/admin/change-password" element={
+          <AdminChangePassword sidebarCollapsed={sidebarCollapsed} toggleSidebar={toggleSidebar} />
+        } />
         <Route path="/patients" element={
           <Patients sidebarCollapsed={sidebarCollapsed} toggleSidebar={toggleSidebar} />
         } />
@@ -188,6 +194,7 @@ function App() {
         <Route path="/doctor/profile" element={
           <DoctorProfile sidebarCollapsed={sidebarCollapsed} toggleSidebar={toggleSidebar} />
         } />
+        <Route path="/doctor/change-password" element={<DoctorChangePassword />} />
 
         {/* Patient Section */}
 
@@ -205,6 +212,7 @@ function App() {
         } />
         <Route path="/patient/profile-setup" element={<PatientProfileSetup />} />
         <Route path="/patient/profile" element={<PatientProfile sidebarCollapsed={sidebarCollapsed} toggleSidebar={toggleSidebar} />} />
+        <Route path="/patient/change-password" element={<PatientChangePassword sidebarCollapsed={sidebarCollapsed} toggleSidebar={toggleSidebar} />} />
 
         {/* Others */}
 

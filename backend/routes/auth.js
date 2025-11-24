@@ -193,4 +193,69 @@ router.put("/receptionists/change-password/:id", async (req, res) => {
   }
 });
 
+// General Change Password (for any logged-in user: Admin, Doctor, Patient, Receptionist)
+router.post("/change-password", async (req, res) => {
+  try {
+    const { email, oldPassword, newPassword } = req.body;
+
+    if (!email || !oldPassword || !newPassword) {
+      return res.status(400).json({ message: "All fields are required" });
+    }
+
+    if (newPassword.length < 6) {
+      return res
+        .status(400)
+        .json({ message: "New password must be at least 6 characters long" });
+    }
+
+    // 1. Check if it's the hardcoded admin
+    if (email === ADMIN_EMAIL) {
+      return res.status(403).json({
+        message:
+          "Default Admin password cannot be changed. Please contact support or migrate to a database admin.",
+      });
+    }
+
+    // 2. Check Receptionist Collection
+    const receptionist = await Receptionist.findOne({ email });
+    if (receptionist) {
+      const isMatch = await checkPassword(oldPassword, receptionist.password);
+      if (!isMatch) {
+        return res.status(400).json({ message: "Incorrect old password" });
+      }
+
+      const hashedPassword = await bcrypt.hash(newPassword, 10);
+      receptionist.password = hashedPassword;
+      receptionist.mustChangePassword = false; // Clear this flag if it was set
+      await receptionist.save();
+
+      return res.json({ message: "Password updated successfully" });
+    }
+
+    // 3. Check User Collection (Doctor, Patient)
+    const user = await User.findOne({ email });
+    if (user) {
+      const isMatch = await checkPassword(oldPassword, user.password);
+      if (!isMatch) {
+        return res.status(400).json({ message: "Incorrect old password" });
+      }
+
+      const hashedPassword = await bcrypt.hash(newPassword, 10);
+      user.password = hashedPassword;
+      // If user model has a flag, we could clear it here, but it's optional for general users
+      if (user.mustChangePassword) {
+        user.mustChangePassword = false;
+      }
+      await user.save();
+
+      return res.json({ message: "Password updated successfully" });
+    }
+
+    return res.status(404).json({ message: "User not found" });
+  } catch (err) {
+    console.error("Change password error:", err);
+    res.status(500).json({ message: "Server error while changing password" });
+  }
+});
+
 module.exports = router;

@@ -1042,6 +1042,145 @@ app.get("/appointments", async (req, res) => {
   }
 });
 
+// GET /appointments/all
+app.get("/appointments/all", async (req, res) => {
+  try {
+    const list = await AppointmentModel.find()
+      .sort({ createdAt: -1 })
+      .populate({
+        path: "patientId",
+        select: "firstName lastName email phone",
+        model: "patients",
+      })
+      .populate({
+        path: "doctorId",
+        select: "name clinic",
+        model: "doctors",
+      })
+      .lean();
+    res.json(list);
+  } catch (err) {
+    console.error("Error fetching all appointments:", err);
+    res.status(500).json({ message: "Server error", error: err.message });
+  }
+});
+
+// GET /appointments/today
+app.get("/appointments/today", async (req, res) => {
+  try {
+    const today = new Date();
+    const yyyy = today.getFullYear();
+    const mm = String(today.getMonth() + 1).padStart(2, "0");
+    const dd = String(today.getDate()).padStart(2, "0");
+    const todayStr = `${yyyy}-${mm}-${dd}`;
+
+    // Assuming 'date' is stored as "YYYY-MM-DD" string based on dashboard-stats
+    const list = await AppointmentModel.find({ date: todayStr })
+      .sort({ createdAt: -1 })
+      .populate({
+        path: "patientId",
+        select: "firstName lastName email phone",
+        model: "patients",
+      })
+      .populate({
+        path: "doctorId",
+        select: "name clinic",
+        model: "doctors",
+      })
+      .lean();
+    res.json(list);
+  } catch (err) {
+    console.error("Error fetching today's appointments:", err);
+    res.status(500).json({ message: "Server error", error: err.message });
+  }
+});
+
+// GET /appointments/weekly
+app.get("/appointments/weekly", async (req, res) => {
+  try {
+    // Simple logic: get appointments for the next 7 days including today
+    // Or if it means "this week's stats", the frontend expects a list for the chart?
+    // AdminDashboard.jsx:69 calls /appointments/${mode} and setsWeeklyStats.
+    // The chart expects: [{ label: 'Mon', count: 10 }, ...] or similar?
+    // Let's check AdminDashboard.jsx again.
+    // It maps over weeklyStats: {item.label} {item.count}.
+    // So this endpoint should return stats, NOT a list of appointments.
+    
+    // Let's implement a simple daily count for the last 7 days.
+    const stats = [];
+    const today = new Date();
+    
+    for (let i = 6; i >= 0; i--) {
+      const d = new Date(today);
+      d.setDate(today.getDate() - i);
+      const yyyy = d.getFullYear();
+      const mm = String(d.getMonth() + 1).padStart(2, "0");
+      const dd = String(d.getDate()).padStart(2, "0");
+      const dateStr = `${yyyy}-${mm}-${dd}`;
+      
+      const count = await AppointmentModel.countDocuments({ date: dateStr });
+      const dayName = d.toLocaleDateString('en-US', { weekday: 'short' });
+      
+      stats.push({ label: dayName, count });
+    }
+    
+    res.json(stats);
+  } catch (err) {
+    console.error("Error fetching weekly stats:", err);
+    res.status(500).json({ message: "Server error", error: err.message });
+  }
+});
+
+// GET /appointments/monthly
+app.get("/appointments/monthly", async (req, res) => {
+  try {
+    // Return stats for the last 4 weeks or similar?
+    // Or maybe just weeks of the current month.
+    // Let's do last 4 weeks for simplicity.
+    const stats = [];
+    const today = new Date();
+    
+    // Group by week is harder with simple string dates.
+    // Let's just return the last 30 days grouped by 5-day intervals or just total count?
+    // The UI is a list of items.
+    // Let's do a simple breakdown by week for the current month.
+    
+    // Alternative: Return counts for the last 4 weeks.
+    for (let i = 3; i >= 0; i--) {
+        // This is a bit complex to do perfectly with string dates without aggregation.
+        // Let's simplify: Return counts for the last 4 weeks (7-day chunks).
+        // Actually, let's just do "Week 1", "Week 2", etc. of the current month.
+        
+        // Let's stick to what's robust: Last 4 weeks relative to now.
+        // Start date of the week.
+        const start = new Date(today);
+        start.setDate(today.getDate() - (i * 7) - 6);
+        const end = new Date(today);
+        end.setDate(today.getDate() - (i * 7));
+        
+        // We need to query range. String comparison works for YYYY-MM-DD if we are careful.
+        // But simpler to just iterate days and sum.
+        let count = 0;
+        for (let j=0; j<7; j++) {
+            const d = new Date(start);
+            d.setDate(start.getDate() + j);
+            const yyyy = d.getFullYear();
+            const mm = String(d.getMonth() + 1).padStart(2, "0");
+            const dd = String(d.getDate()).padStart(2, "0");
+            const dateStr = `${yyyy}-${mm}-${dd}`;
+            count += await AppointmentModel.countDocuments({ date: dateStr });
+        }
+        
+        stats.push({ label: `Week ${4-i}`, count });
+    }
+
+    res.json(stats);
+  } catch (err) {
+    console.error("Error fetching monthly stats:", err);
+    res.status(500).json({ message: "Server error", error: err.message });
+  }
+});
+
 // Get appointment by ID (populate patient and doctor, return normalized patient info)
 app.get("/appointments/:id", async (req, res) => {
   try {
