@@ -254,32 +254,11 @@ app.get("/dashboard-stats", async (req, res) => {
  *         DOCTOR APIs
  * =============================== */
 
-app.post("/doctors", async (req, res) => {
-  try {
-    const doctor = await DoctorModel.create(req.body);
-    res.json({ message: "Doctor added", data: doctor });
-  } catch (err) {
-    res.status(500).json({ message: "Server error", error: err.message });
-  }
-});
 
-app.get("/doctors", async (req, res) => {
-  try {
-    const doctors = await DoctorModel.find();
-    res.json(doctors);
-  } catch (err) {
-    res.status(500).json({ message: "Server error", error: err.message });
-  }
-});
 
-app.delete("/doctors/:id", async (req, res) => {
-  try {
-    await DoctorModel.findByIdAndDelete(req.params.id);
-    res.json({ message: "Doctor deleted successfully" });
-  } catch (err) {
-    res.status(500).json({ message: "Error deleting doctor", error: err.message });
-  }
-});
+
+
+
 
 //doctor Csv Import
 
@@ -404,25 +383,9 @@ app.delete("/doctor-sessions/:id", async (req, res) => {
 //          APPOINTMENTS
 // ===============================
 
-// Create appointment
-app.post("/appointments", async (req, res) => {
-  try {
-    const doc = await AppointmentModel.create(req.body);
-    res.json({ message: "Appointment created", data: doc });
-  } catch (err) {
-    res.status(500).json({ message: "Server error", error: err.message });
-  }
-});
 
-// Get appointments
-app.get("/appointments", async (req, res) => {
-  try {
-    const list = await AppointmentModel.find();
-    res.json(list);
-  } catch (err) {
-    res.status(500).json({ message: "Server error", error: err.message });
-  }
-});
+
+
 
 // Csv File Import data 
 app.post("/appointments/import", upload.single("file"), async (req, res) => {
@@ -1002,6 +965,22 @@ app.get("/appointments", async (req, res) => {
     if (req.query.doctor) q.doctorName = { $regex: req.query.doctor, $options: "i" };
     if (req.query.status) q.status = req.query.status;
 
+    // Filter by patientId (supports both Patient ID and User ID)
+    if (req.query.patientId) {
+      if (mongoose.Types.ObjectId.isValid(req.query.patientId)) {
+        const p = await PatientModel.findOne({
+          $or: [{ _id: req.query.patientId }, { userId: req.query.patientId }],
+        });
+        if (p) {
+          q.patientId = p._id;
+        } else {
+          q.patientId = req.query.patientId;
+        }
+      } else {
+        q.patientId = req.query.patientId;
+      }
+    }
+
     // find appointments and populate patientId and doctorId
     const list = await AppointmentModel.find(q)
       .sort({ createdAt: -1 })
@@ -1098,15 +1077,7 @@ app.get("/appointments/today", async (req, res) => {
 // GET /appointments/weekly
 app.get("/appointments/weekly", async (req, res) => {
   try {
-    // Simple logic: get appointments for the next 7 days including today
-    // Or if it means "this week's stats", the frontend expects a list for the chart?
-    // AdminDashboard.jsx:69 calls /appointments/${mode} and setsWeeklyStats.
-    // The chart expects: [{ label: 'Mon', count: 10 }, ...] or similar?
-    // Let's check AdminDashboard.jsx again.
-    // It maps over weeklyStats: {item.label} {item.count}.
-    // So this endpoint should return stats, NOT a list of appointments.
-    
-    // Let's implement a simple daily count for the last 7 days.
+   
     const stats = [];
     const today = new Date();
     
@@ -1134,32 +1105,18 @@ app.get("/appointments/weekly", async (req, res) => {
 // GET /appointments/monthly
 app.get("/appointments/monthly", async (req, res) => {
   try {
-    // Return stats for the last 4 weeks or similar?
-    // Or maybe just weeks of the current month.
-    // Let's do last 4 weeks for simplicity.
+    
     const stats = [];
     const today = new Date();
     
-    // Group by week is harder with simple string dates.
-    // Let's just return the last 30 days grouped by 5-day intervals or just total count?
-    // The UI is a list of items.
-    // Let's do a simple breakdown by week for the current month.
     
-    // Alternative: Return counts for the last 4 weeks.
     for (let i = 3; i >= 0; i--) {
-        // This is a bit complex to do perfectly with string dates without aggregation.
-        // Let's simplify: Return counts for the last 4 weeks (7-day chunks).
-        // Actually, let's just do "Week 1", "Week 2", etc. of the current month.
-        
-        // Let's stick to what's robust: Last 4 weeks relative to now.
-        // Start date of the week.
+       
         const start = new Date(today);
         start.setDate(today.getDate() - (i * 7) - 6);
         const end = new Date(today);
         end.setDate(today.getDate() - (i * 7));
         
-        // We need to query range. String comparison works for YYYY-MM-DD if we are careful.
-        // But simpler to just iterate days and sum.
         let count = 0;
         for (let j=0; j<7; j++) {
             const d = new Date(start);
