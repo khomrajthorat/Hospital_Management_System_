@@ -187,4 +187,120 @@ router.post("/import", upload.single("file"), async (req, res) => {
   }
 });
 
+/* ===============================
+ *      DOCTOR PROFILE APIs
+ * =============================== */
+
+// Get Doctor Profile by ID
+router.get("/profile/:id", async (req, res) => {
+  try {
+    const { id } = req.params;
+    const doctor = await DoctorModel.findById(id).select("-password -passwordPlain");
+    
+    if (!doctor) {
+      return res.status(404).json({ message: "Doctor not found" });
+    }
+
+    // Format the response to match what frontend expects
+    const profileData = {
+      name: `${doctor.firstName || ""} ${doctor.lastName || ""}`.trim(),
+      email: doctor.email || "",
+      avatar: doctor.avatar || "",
+      phone: doctor.phone || "",
+      gender: doctor.gender || "",
+      dob: doctor.dob || "",
+      addressLine1: doctor.addressLine1 || doctor.address || "",
+      addressLine2: doctor.addressLine2 || "",
+      city: doctor.city || "",
+      postalCode: doctor.postalCode || "",
+      qualification: doctor.qualification || "",
+      specialization: doctor.specialization || "",
+      experienceYears: doctor.experienceYears || doctor.experience || "",
+    };
+
+    res.json(profileData);
+  } catch (err) {
+    console.error("Error fetching doctor profile:", err);
+    res.status(500).json({ message: "Server error", error: err.message });
+  }
+});
+
+// Update Doctor Profile by ID
+router.put("/profile/:id", async (req, res) => {
+  try {
+    const { id } = req.params;
+    const {
+      name,
+      avatar,
+      phone,
+      gender,
+      dob,
+      addressLine1,
+      addressLine2,
+      city,
+      postalCode,
+      qualification,
+      specialization,
+      experienceYears,
+    } = req.body;
+
+    // Split name into firstName and lastName
+    const nameParts = (name || "").trim().split(" ");
+    const firstName = nameParts[0] || "";
+    const lastName = nameParts.slice(1).join(" ") || "";
+
+    const updateData = {
+      firstName,
+      lastName,
+      avatar,
+      phone,
+      gender,
+      dob,
+      addressLine1,
+      addressLine2,
+      city,
+      postalCode,
+      qualification,
+      specialization,
+      experienceYears,
+      // Also update the address field (combined)
+      address: [addressLine1, addressLine2, city, postalCode]
+        .filter(Boolean)
+        .join(", "),
+    };
+
+    const updatedDoctor = await DoctorModel.findByIdAndUpdate(
+      id,
+      updateData,
+      { new: true }
+    ).select("-password -passwordPlain");
+
+    if (!updatedDoctor) {
+      return res.status(404).json({ message: "Doctor not found" });
+    }
+
+    // Return formatted response
+    const profileData = {
+      name: `${updatedDoctor.firstName || ""} ${updatedDoctor.lastName || ""}`.trim(),
+      email: updatedDoctor.email || "",
+      avatar: updatedDoctor.avatar || "",
+      phone: updatedDoctor.phone || "",
+      gender: updatedDoctor.gender || "",
+      dob: updatedDoctor.dob || "",
+      addressLine1: updatedDoctor.addressLine1 || "",
+      addressLine2: updatedDoctor.addressLine2 || "",
+      city: updatedDoctor.city || "",
+      postalCode: updatedDoctor.postalCode || "",
+      qualification: updatedDoctor.qualification || "",
+      specialization: updatedDoctor.specialization || "",
+      experienceYears: updatedDoctor.experienceYears || "",
+    };
+
+    res.json(profileData);
+  } catch (err) {
+    console.error("Error updating doctor profile:", err);
+    res.status(500).json({ message: "Server error", error: err.message });
+  }
+});
+
 module.exports = router;

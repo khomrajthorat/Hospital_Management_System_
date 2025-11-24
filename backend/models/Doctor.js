@@ -15,6 +15,11 @@ const DoctorSchema = new mongoose.Schema({
   city: String,
   country: String,
   postalCode: String,
+  avatar: String, // Profile photo
+  addressLine1: String,
+  addressLine2: String,
+  qualification: String,
+  experienceYears: String,
   qualifications: [
     {
       degree: String,
