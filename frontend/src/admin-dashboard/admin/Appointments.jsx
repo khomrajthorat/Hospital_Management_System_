@@ -334,50 +334,23 @@ const Appointments = ({ sidebarCollapsed = false, toggleSidebar }) => {
 
         <div className="container-fluid py-3">
           {/* HEADER */}
-          <div className="d-flex justify-content-between align-items-center mb-3">
+          <div className="services-topbar services-card d-flex justify-content-between align-items-center">
             <div>
-              <h4 className="text-primary fw-bold mb-1">Appointment</h4>
-
-              <div className="btn-group btn-sm">
-                <button
-                  className={`btn btn-outline-primary btn-sm ${
-                    tab === "all" ? "active" : ""
-                  }`}
-                  onClick={() => setTab("all")}
-                >
-                  ALL
-                </button>
-                <button
-                  className={`btn btn-outline-primary btn-sm ${
-                    tab === "upcoming" ? "active" : ""
-                  }`}
-                  onClick={() => setTab("upcoming")}
-                >
-                  UPCOMING
-                </button>
-                <button
-                  className={`btn btn-outline-primary btn-sm ${
-                    tab === "past" ? "active" : ""
-                  }`}
-                  onClick={() => setTab("past")}
-                >
-                  PAST
-                </button>
-              </div>
+              <h5 className="fw-bold text-white mb-0">Appointment</h5>
             </div>
 
             <div className="d-flex gap-2">
-              <button className="btn btn-primary btn-sm" onClick={openAddForm}>
+              <button
+               className="btn btn-outline-primary btn-sm" onClick={openAddForm}>
                 Add Appointment
               </button>
               <button
-                className="btn btn-outline-secondary btn-sm"
-                onClick={() => setFiltersOpen((s) => !s)}
-              >
+                className="btn btn-outline-primary btn-sm"
+                onClick={() => setFiltersOpen((s) => !s)}>
                 Filters
               </button>
               <button
-                className="btn btn-outline-secondary btn-sm"
+                className="btn btn-outline-primary btn-sm"
                 onClick={() => setImportOpen(true)}
               >
                 <FaDownload /> Import Data
@@ -467,6 +440,33 @@ const Appointments = ({ sidebarCollapsed = false, toggleSidebar }) => {
                 </button>
               </div>
             </div>
+          </div>
+
+          <div className="btn-group btn-sm">
+            <button
+              className={`btn btn-outline-primary btn-sm ${
+                tab === "all" ? "active" : ""
+              }`}
+              onClick={() => setTab("all")}
+            >
+              ALL
+            </button>
+            <button
+              className={`btn btn-outline-primary btn-sm ${
+                tab === "upcoming" ? "active" : ""
+              }`}
+              onClick={() => setTab("upcoming")}
+            >
+              UPCOMING
+            </button>
+            <button
+              className={`btn btn-outline-primary btn-sm ${
+                tab === "past" ? "active" : ""
+              }`}
+              onClick={() => setTab("past")}
+            >
+              PAST
+            </button>
           </div>
 
           {/* ADD/EDIT PANEL */}
