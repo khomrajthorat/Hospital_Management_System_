@@ -45,6 +45,7 @@ import DoctorServices from "./doctor-dashboard/doctor/DoctorServices";
 import DoctorAppointmentDetails from "./doctor-dashboard/doctor/DoctorAppointmentDetails";
 import DoctorProfile from "./doctor-dashboard/doctor/DoctorProfile.jsx";
 import DoctorChangePassword from "./doctor-dashboard/doctor/DoctorChangePassword";
+import DoctorFirstLoginChangePassword from "./doctor-dashboard/doctor/DoctorFirstLoginChangePassword";
 
 
 // Receptionist
@@ -194,7 +195,9 @@ function App() {
         <Route path="/doctor/profile" element={
           <DoctorProfile sidebarCollapsed={sidebarCollapsed} toggleSidebar={toggleSidebar} />
         } />
+        } />
         <Route path="/doctor/change-password" element={<DoctorChangePassword />} />
+        <Route path="/doctor/change-password-first" element={<DoctorFirstLoginChangePassword />} />
 
         {/* Patient Section */}
 

@@ -2,6 +2,7 @@
 const express = require("express");
 const cors = require("cors");
 const mongoose = require("mongoose");
+const bcrypt = require("bcryptjs"); // Added bcrypt
 const User = require("./models/User");
 const PatientModel = require("./models/Patient");
 const DoctorModel = require("./models/Doctor");
@@ -22,6 +23,7 @@ const authRoutes = require("./routes/auth");
 
 //Receptionist Routes
 const receptionistRoutes = require("./routes/receptionistRoutes");
+const doctorRoutes = require("./routes/doctorRoutes");
 
 
 // PDF Libraries
@@ -42,6 +44,7 @@ app.use(express.json());
 
 // Authentication routes
 app.use("/", authRoutes);
+app.use("/doctors", doctorRoutes);
 
 // PDF Editor section
 const pdfRoutes = require("./routes/pdfRoutes");
@@ -133,22 +136,6 @@ app.put("/api/user/:id", async (req, res) => {
 });
 
 
-
-/* ===============================
- *         PATIENT APIs
- * =============================== */
-
-// Add Patient
-app.post("/patients", async (req, res) => {
-  try {
-    const patient = await PatientModel.create(req.body);
-    res.json({ message: "Patient added", data: patient });
-  } catch (err) {
-    res.status(500).json({ message: "Server error", error: err.message });
-  }
-});
-
-// Get Patients
 app.get("/patients", (req, res) => {
   PatientModel.find()
     .then((patients) => res.json(patients))
@@ -254,72 +241,7 @@ app.get("/dashboard-stats", async (req, res) => {
  *         DOCTOR APIs
  * =============================== */
 
-
-
-
-
-
-
-//doctor Csv Import
-
-app.post("/doctors/import", upload.single("file"), async (req, res) => {
-  try {
-    console.log("📥 /doctors/import hit");
-
-    if (!req.file) {
-      return res.status(400).json({ message: "No file uploaded" });
-    }
-
-    const results = [];
-
-    fs.createReadStream(req.file.path)
-      .pipe(csv())
-      .on("data", (row) => {
-        // CSV headers:
-        // firstName,lastName,clinic,email,phone,dob,specialization,gender,status
-        results.push({
-          firstName: row.firstName,
-          lastName: row.lastName,
-          clinic: row.clinic,
-          email: row.email,
-          phone: row.phone,
-          dob: row.dob, // string is fine, your schema will cast to Date if needed
-          specialization: row.specialization,
-          gender: row.gender,
-          status: row.status || "Active",
-        });
-      })
-      .on("end", async () => {
-        try {
-          console.log("Parsed doctors from CSV:", results.length);
-          if (results.length > 0) {
-            await DoctorModel.insertMany(results);
-          }
-
-          // delete temp file
-          fs.unlinkSync(req.file.path);
-
-          res.json({
-            message: "Imported doctors",
-            count: results.length,
-          });
-        } catch (err) {
-          console.error("❌ Doctor import save error:", err);
-          res.status(500).json({
-            message: "Error saving doctors",
-            error: err.message,
-          });
-        }
-      })
-      .on("error", (err) => {
-        console.error("❌ CSV parse error (doctors):", err);
-        res.status(500).json({ message: "CSV parse error" });
-      });
-  } catch (err) {
-    console.error("❌ Doctor import error:", err);
-    res.status(500).json({ message: "Server error", error: err.message });
-  }
-});
+// Doctor routes are now handled in ./routes/doctorRoutes.js
 
 // ===============================
 //        DOCTOR SESSIONS
@@ -978,6 +900,13 @@ app.get("/appointments", async (req, res) => {
         }
       } else {
         q.patientId = req.query.patientId;
+      }
+    }
+
+    // Filter by doctorId (supports both Doctor ID and Doctor document _id)
+    if (req.query.doctorId) {
+      if (mongoose.Types.ObjectId.isValid(req.query.doctorId)) {
+        q.doctorId = req.query.doctorId;
       }
     }
 
