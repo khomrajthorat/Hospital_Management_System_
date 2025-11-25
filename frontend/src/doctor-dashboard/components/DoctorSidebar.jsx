@@ -30,21 +30,21 @@ const DoctorSidebar = ({ open = true }) => {
       }}
     >
       {/* Logo */}
-      <div className="d-flex align-items-center mb-4 doctor-brand">
+      <div className="d-flex align-items-center mb-4">
         <img src={logo} alt="Logo" width="30" height="30" />
-        {open && <h4 className="m-0 fw-bold text-primary ms-2">OneCare</h4>}
+        {open && <h4 className="m-0 fw-bold text-primary ms-2">One Care</h4>}
       </div>
 
       <ul className="nav nav-pills flex-column">
         <li className="nav-item mb-2">
           <NavLink to="../doctor-dashboard" className={linkClass}>
-            <FaTachometerAlt /> {open && "Dashboard"}
+            <FaTachometerAlt style={{ minWidth: 20 }} /> {open && "Dashboard"}
           </NavLink>
         </li>
 
         <li className="nav-item mb-2">
           <NavLink to="/doctor/appointments" className={linkClass}>
-            <FaCalendarAlt /> {open && "Appointments"}
+            <FaCalendarAlt style={{ minWidth: 20 }} /> {open && "Appointments"}
           </NavLink>
         </li>
 
@@ -56,7 +56,7 @@ const DoctorSidebar = ({ open = true }) => {
             onClick={() => setEncountersOpen(v => !v)}
             style={{ border: "none", background: "transparent", width: "100%", textAlign: "left" }}
           >
-            <FaCalendarCheck />
+            <FaCalendarCheck style={{ minWidth: 20 }} />
             {open && <span className="flex-grow-1">Encounters</span>}
             {open && <span style={{ marginLeft: "auto" }}>{encountersOpen ? "▾" : "▸"}</span>}
           </button>
@@ -73,25 +73,25 @@ const DoctorSidebar = ({ open = true }) => {
 
         <li className="nav-item mb-2">
           <NavLink to="/doctor/patients" className={linkClass}>
-            <FaUserInjured /> {open && "Patients"}
+            <FaUserInjured style={{ minWidth: 20 }} /> {open && "Patients"}
           </NavLink>
         </li>
 
         <li className="nav-item mb-2">
           <NavLink to="/doctor/services" className={linkClass}>
-            <FaListAlt /> {open && "Services"}
+            <FaListAlt style={{ minWidth: 20 }} /> {open && "Services"}
           </NavLink>
         </li>
 
         <li className="nav-item mb-2">
           <NavLink to="/doctor/billing" className={linkClass}>
-            <FaFileInvoice /> {open && "Billing records"}
+            <FaFileInvoice style={{ minWidth: 20 }} /> {open && "Billing records"}
           </NavLink>
         </li>
 
         <li className="nav-item mb-2 mt-auto">
           <NavLink to="/doctor/settings" className={linkClass}>
-            <IoMdSettings /> {open && "Settings"}
+            <IoMdSettings style={{ minWidth: 20 }} /> {open && "Settings"}
           </NavLink>
         </li>
       </ul>
