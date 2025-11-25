@@ -1,17 +1,22 @@
-import React, { useState, useRef } from "react";
-import { useNavigate } from "react-router-dom";
+// src/pages/admin/AddDoctor.jsx
+import React, { useState, useRef, useEffect } from "react";
+import { useNavigate, useLocation } from "react-router-dom";
 import "bootstrap/dist/css/bootstrap.min.css";
 import { FaArrowLeft, FaSave, FaPlus, FaTrash } from "react-icons/fa";
+import { toast } from "react-hot-toast";
 import AdminLayout from "../layouts/AdminLayout";
+
+const API_BASE = "http://localhost:3001";
 
 const AddDoctor = () => {
   const navigate = useNavigate();
+  const location = useLocation();
   const qualificationRef = useRef(null);
 
-  // State for showing qualification form
   const [showQualificationForm, setShowQualificationForm] = useState(false);
+  const [isEditMode, setIsEditMode] = useState(false);
+  const [editDoctorId, setEditDoctorId] = useState(null);
 
-  // Doctor form data
   const [formData, setFormData] = useState({
     firstName: "",
     lastName: "",
@@ -29,7 +34,6 @@ const AddDoctor = () => {
     postalCode: "",
   });
 
-  // Qualification data
   const [qualification, setQualification] = useState({
     degree: "",
     university: "",
@@ -38,19 +42,83 @@ const AddDoctor = () => {
 
   const [qualifications, setQualifications] = useState([]);
 
-  // Handle input for doctor form
+  // clinic list state
+  const [clinics, setClinics] = useState([]);
+  const [clinicsLoading, setClinicsLoading] = useState(false);
+  const [clinicsError, setClinicsError] = useState("");
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
+  // Check if we're in edit mode and populate form
+  useEffect(() => {
+    if (location.state?.editDoctor) {
+      const doctor = location.state.editDoctor;
+      setIsEditMode(true);
+      setEditDoctorId(doctor._id);
+      setFormData({
+        firstName: doctor.firstName || "",
+        lastName: doctor.lastName || "",
+        email: doctor.email || "",
+        clinic: doctor.clinic || "",
+        phone: doctor.phone || "",
+        dob: doctor.dob || "",
+        specialization: doctor.specialization || "",
+        experience: doctor.experience || "",
+        gender: doctor.gender || "",
+        status: doctor.status || "Active",
+        address: doctor.address || "",
+        city: doctor.city || "",
+        country: doctor.country || "",
+        postalCode: doctor.postalCode || "",
+      });
+      if (doctor.qualifications && Array.isArray(doctor.qualifications)) {
+        setQualifications(doctor.qualifications);
+      }
+    }
+  }, [location.state]);
+
+  // load clinics from backend: GET /api/clinics -> { success, clinics }
+  useEffect(() => {
+    const fetchClinics = async () => {
+      try {
+        setClinicsLoading(true);
+        setClinicsError("");
+
+        const res = await fetch(`${API_BASE}/api/clinics`);
+
+        if (!res.ok) {
+          throw new Error("Failed to fetch clinics");
+        }
+
+        const data = await res.json();
+
+        if (!data.success) {
+          throw new Error(data.message || "Failed to load clinics");
+        }
+
+        const list = Array.isArray(data.clinics) ? data.clinics : [];
+        setClinics(list);
+      } catch (err) {
+        console.error("Error loading clinics:", err);
+        setClinicsError("Unable to load clinics");
+        toast.error("Unable to load clinics. Please check server.");
+      } finally {
+        setClinicsLoading(false);
+      }
+    };
+
+    fetchClinics();
+  }, []);
+
   const handleChange = (e) => {
     const { name, value } = e.target;
-    setFormData({ ...formData, [name]: value });
+    setFormData((prev) => ({ ...prev, [name]: value }));
   };
 
-  // Handle input for qualification form
   const handleQualificationChange = (e) => {
     const { name, value } = e.target;
-    setQualification({ ...qualification, [name]: value });
+    setQualification((prev) => ({ ...prev, [name]: value }));
   };
 
-  // Scroll to qualification form
   const handleAddQualification = () => {
     setShowQualificationForm(true);
     setTimeout(() => {
@@ -58,65 +126,88 @@ const AddDoctor = () => {
     }, 100);
   };
 
-  // Save qualification
   const saveQualification = () => {
     if (!qualification.degree || !qualification.university || !qualification.year) {
-      alert("Please fill all qualification fields");
+      toast.error("Please fill all qualification fields");
       return;
     }
-    setQualifications([...qualifications, qualification]);
+    setQualifications((prev) => [...prev, qualification]);
     setQualification({ degree: "", university: "", year: "" });
     setShowQualificationForm(false);
+    toast.success("Qualification added");
   };
 
-  // Cancel qualification input
   const cancelQualification = () => {
     setQualification({ degree: "", university: "", year: "" });
     setShowQualificationForm(false);
   };
 
-  // Delete qualification
   const handleDeleteQualification = (index) => {
     if (window.confirm("Are you sure you want to delete this qualification?")) {
-      const updatedQualifications = qualifications.filter((_, i) => i !== index);
-      setQualifications(updatedQualifications);
+      setQualifications((prev) => prev.filter((_, i) => i !== index));
+      toast.success("Qualification deleted");
     }
   };
 
-  // Submit final doctor data
   const handleSubmit = async (e) => {
-  e.preventDefault();
+    e.preventDefault();
+    if (isSubmitting) return;
 
-  try {
-    const doctorData = { ...formData, qualifications }; // include qualifications
+    setIsSubmitting(true);
+    try {
+      const doctorData = { ...formData, qualifications };
 
-    const res = await fetch("http://localhost:3001/doctors", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(doctorData),
-    });
+      if (isEditMode && editDoctorId) {
+        // Update existing doctor
+        const res = await fetch(`${API_BASE}/doctors/${editDoctorId}`, {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(doctorData),
+        });
 
-    const data = await res.json();
-    console.log("✅ Doctor added:", data);
+        const data = await res.json();
+        console.log("✅ Doctor updated:", data);
 
-    if (data.message === "Doctor added") {
-      alert("Doctor added successfully!");
-      navigate("/doctors");
-    } else {
-      alert("Something went wrong!");
+        if (res.ok) {
+          toast.success("Doctor updated successfully!");
+          navigate("/doctors");
+        } else {
+          toast.error(data.message || "Something went wrong!");
+        }
+      } else {
+        // Create new doctor
+        const res = await fetch(`${API_BASE}/doctors`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(doctorData),
+        });
+
+        const data = await res.json();
+        console.log("✅ Doctor added:", data);
+
+        if (res.ok) {
+          toast.success("Doctor added successfully!");
+          navigate("/doctors");
+        } else {
+          toast.error(data.message || "Something went wrong!");
+        }
+      }
+    } catch (err) {
+      console.error("❌ Error saving doctor:", err);
+      toast.error("Error saving doctor. Check console for details.");
+    } finally {
+      setIsSubmitting(false);
     }
-  } catch (err) {
-    console.error("❌ Error saving doctor:", err);
-    alert("Error saving doctor. Check console for details.");
-  }
-};
+  };
 
   return (
     <AdminLayout>
       <div className="container bg-white p-4 rounded shadow-sm">
         {/* Header */}
         <div className="d-flex justify-content-between align-items-center mb-4">
-          <h4 className="fw-bold text-primary mb-0">Add Doctor</h4>
+          <h4 className="fw-bold text-primary mb-0">
+            {isEditMode ? "Edit Doctor" : "Add Doctor"}
+          </h4>
           <button
             className="btn btn-outline-primary d-flex align-items-center gap-2"
             onClick={() => navigate("/doctors")}
@@ -169,6 +260,7 @@ const AddDoctor = () => {
               />
             </div>
 
+            {/* Select Clinic – dynamic from /api/clinics */}
             <div className="col-md-4">
               <label className="form-label">Select Clinic *</label>
               <select
@@ -177,10 +269,26 @@ const AddDoctor = () => {
                 value={formData.clinic}
                 onChange={handleChange}
                 required
+                disabled={clinicsLoading || !!clinicsError}
               >
-                <option value="">Select clinic</option>
-                <option value="Valley Clinic">Valley Clinic</option>
-                <option value="City Care">City Care</option>
+                <option value="">
+                  {clinicsLoading
+                    ? "Loading clinics..."
+                    : clinicsError
+                    ? "Error loading clinics"
+                    : clinics.length === 0
+                    ? "No clinics found"
+                    : "Select clinic"}
+                </option>
+
+                {clinics.map((clinic) => (
+                  <option
+                    key={clinic._id}
+                    value={clinic.name} // keep storing name like before
+                  >
+                    {clinic.name}
+                  </option>
+                ))}
               </select>
             </div>
 
@@ -453,8 +561,16 @@ const AddDoctor = () => {
             >
               Cancel
             </button>
-            <button type="submit" className="btn btn-primary d-flex align-items-center gap-2">
-              <FaSave /> Save
+            <button 
+              type="submit" 
+              className="btn btn-primary d-flex align-items-center gap-2"
+              disabled={isSubmitting}
+            >
+              {isSubmitting ? (isEditMode ? "Updating..." : "Saving...") : (
+                <>
+                  <FaSave /> {isEditMode ? "Update Doctor" : "Save Doctor"}
+                </>
+              )}
             </button>
           </div>
         </form>
