@@ -3,6 +3,7 @@ import AdminLayout from "../layouts/AdminLayout";
 import axios from "axios";
 import { useNavigate } from "react-router-dom";
 import "bootstrap/dist/css/bootstrap.min.css";
+import toast from 'react-hot-toast';
 
 const BASE = "http://localhost:3001";
 
@@ -52,8 +53,8 @@ const AddBill = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
 
-    if (!form.doctorName) return alert("Please select a doctor");
-    if (!form.patientName) return alert("Please select a patient");
+    if (!form.doctorName) return toast.error("Please select a doctor");
+    if (!form.patientName) return toast.error("Please select a patient");
 
     try {
       setSaving(true);
@@ -63,11 +64,11 @@ const AddBill = () => {
       };
 
       await axios.post(`${BASE}/bills`, payload);
-      alert("Bill created!");
+      toast.success("Bill created!");
       navigate("/BillingRecords");
     } catch (err) {
       console.error(err);
-      alert("Error creating bill.");
+      toast.error("Error creating bill.");
     } finally {
       setSaving(false);
     }
