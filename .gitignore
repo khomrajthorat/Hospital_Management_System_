@@ -1,6 +1,4 @@
-#################################
-# Environment Files
-#################################
+ Environment Files
 .env
 .env.local
 .env.development
