@@ -1,12 +1,14 @@
 import React, { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import Sidebar from "../components/Sidebar";
-import { FaSearch, FaFilter, FaPlus, FaTimes, FaSave } from "react-icons/fa";
+import { FaSearch, FaFilter, FaPlus, FaTimes, FaSave, FaEdit, FaTrash, FaColumns } from "react-icons/fa";
 import Navbar from "../components/Navbar";
 import "../styles/services.css";
 import axios from "axios";
 import toast from "react-hot-toast";
 
 export default function EncounterList({ sidebarCollapsed, toggleSidebar }) {
+  const navigate = useNavigate();
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [encounters, setEncounters] = useState([]);
   const [clinics, setClinics] = useState([]);
@@ -15,6 +17,7 @@ export default function EncounterList({ sidebarCollapsed, toggleSidebar }) {
   
   // Form State
   const [formData, setFormData] = useState({
+    id: null, // Add ID for edit mode
     date: new Date().toISOString().split('T')[0],
     clinic: "",
     doctor: "",
@@ -43,7 +46,6 @@ export default function EncounterList({ sidebarCollapsed, toggleSidebar }) {
   const fetchClinics = async () => {
     try {
       const res = await axios.get("http://localhost:3001/api/clinics");
-      // The API returns { success: true, clinics: [...] }
       setClinics(res.data.clinics || []);
     } catch (err) {
       console.error("Error fetching clinics:", err);
@@ -73,27 +75,64 @@ export default function EncounterList({ sidebarCollapsed, toggleSidebar }) {
     setFormData({ ...formData, [name]: value });
   };
 
+  const handleEdit = (encounter) => {
+    setFormData({
+      id: encounter._id,
+      date: new Date(encounter.date).toISOString().split('T')[0],
+      clinic: encounter.clinic,
+      doctor: encounter.doctor,
+      patient: encounter.patient,
+      description: encounter.description || "",
+      status: encounter.status
+    });
+    setIsFormOpen(true);
+    // Scroll to top to see form
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
+  const handleDashboard = (id) => {
+    navigate(`/encounter-details/${id}`);
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     try {
-      // Find selected doctor and patient objects to get IDs if needed, 
-      // but for now we are storing names/strings as per model. 
-      // Ideally we should store IDs. Let's try to populate IDs if possible.
       const selectedDoctor = doctors.find(d => `${d.firstName} ${d.lastName}` === formData.doctor || d._id === formData.doctor);
       const selectedPatient = patients.find(p => `${p.firstName} ${p.lastName}` === formData.patient || p._id === formData.patient);
 
+      // Exclude id from payload
+      const { id, ...dataToSave } = formData;
+      
       const payload = {
-        ...formData,
+        ...dataToSave,
         doctorId: selectedDoctor ? selectedDoctor._id : null,
         patientId: selectedPatient ? selectedPatient._id : null
       };
 
-      await axios.post("http://localhost:3001/encounters", payload);
-      toast.success("Encounter added successfully");
+      let res;
+      if (formData.id) {
+        // Update existing
+        res = await axios.put(`http://localhost:3001/encounters/${formData.id}`, payload);
+        toast.success("Encounter updated successfully");
+      } else {
+        // Create new
+        res = await axios.post("http://localhost:3001/encounters", payload);
+        toast.success("Encounter added successfully");
+      }
+      
       setIsFormOpen(false);
-      fetchEncounters();
+      
+      
+      // Redirect to details page if creating new
+      if (!formData.id && res.data && res.data._id) {
+         navigate(`/encounter-details/${res.data._id}`);
+      } else {
+         fetchEncounters();
+      }
+      
       // Reset form
       setFormData({
+        id: null,
         date: new Date().toISOString().split('T')[0],
         clinic: "",
         doctor: "",
@@ -107,24 +146,49 @@ export default function EncounterList({ sidebarCollapsed, toggleSidebar }) {
     }
   };
 
-  const handleDelete = async (id) => {
-    if (window.confirm("Are you sure you want to delete this encounter?")) {
+  // Delete Modal State
+  const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
+  const [encounterToDelete, setEncounterToDelete] = useState(null);
+
+  const handleDeleteClick = (id) => {
+    setEncounterToDelete(id);
+    setIsDeleteModalOpen(true);
+  };
+
+  const confirmDelete = async () => {
+    if (encounterToDelete) {
       try {
-        await axios.delete(`http://localhost:3001/encounters/${id}`);
+        await axios.delete(`http://localhost:3001/encounters/${encounterToDelete}`);
         toast.success("Encounter deleted");
         fetchEncounters();
       } catch (err) {
         console.error("Error deleting encounter:", err);
         toast.error("Failed to delete encounter");
+      } finally {
+        setIsDeleteModalOpen(false);
+        setEncounterToDelete(null);
       }
     }
+  };
+
+  const handleCloseForm = () => {
+    setIsFormOpen(false);
+    setFormData({
+      id: null,
+      date: new Date().toISOString().split('T')[0],
+      clinic: "",
+      doctor: "",
+      patient: "",
+      description: "",
+      status: "active"
+    });
   };
 
   return (
     <div className="d-flex">
       <Sidebar collapsed={sidebarCollapsed} />
       <div
-        className="flex-grow-1 main-content-transition"
+        className="flex-grow-1 main-content-transition fade-in"
         style={{
           marginLeft: sidebarCollapsed ? "64px" : "250px",
           minHeight: "100vh",
@@ -139,7 +203,7 @@ export default function EncounterList({ sidebarCollapsed, toggleSidebar }) {
             <div className="d-flex gap-2">
               <button 
                 className="btn btn-outline-light btn-sm d-flex align-items-center gap-2" 
-                onClick={() => setIsFormOpen(false)}
+                onClick={handleCloseForm}
               >
                  Back
               </button>
@@ -153,7 +217,7 @@ export default function EncounterList({ sidebarCollapsed, toggleSidebar }) {
               ) : (
                 <button 
                   className="btn btn-light btn-sm d-flex align-items-center gap-2"
-                  onClick={() => setIsFormOpen(false)}
+                  onClick={handleCloseForm}
                 >
                   <FaTimes /> Close Form
                 </button>
@@ -251,7 +315,7 @@ export default function EncounterList({ sidebarCollapsed, toggleSidebar }) {
                 <button 
                   type="button" 
                   className="btn btn-outline-secondary"
-                  onClick={() => setIsFormOpen(false)}
+                  onClick={handleCloseForm}
                 >
                   Cancel
                 </button>
@@ -319,12 +383,29 @@ export default function EncounterList({ sidebarCollapsed, toggleSidebar }) {
                           </span>
                         </td>
                         <td>
-                          <button 
-                            className="btn btn-sm btn-outline-danger"
-                            onClick={() => handleDelete(enc._id)}
-                          >
-                            Delete
-                          </button>
+                          <div className="d-flex gap-2">
+                            <button 
+                              className="btn btn-sm btn-outline-primary"
+                              title="Edit"
+                              onClick={() => handleEdit(enc)}
+                            >
+                              <FaEdit />
+                            </button>
+                            <button 
+                              className="btn btn-sm btn-outline-info"
+                              title="Encounter Dashboard"
+                              onClick={() => handleDashboard(enc._id)}
+                            >
+                              <FaColumns />
+                            </button>
+                            <button 
+                              className="btn btn-sm btn-outline-danger"
+                              title="Delete"
+                              onClick={() => handleDeleteClick(enc._id)}
+                            >
+                              <FaTrash />
+                            </button>
+                          </div>
                         </td>
                       </tr>
                     ))
@@ -352,6 +433,31 @@ export default function EncounterList({ sidebarCollapsed, toggleSidebar }) {
             
           </div>
         </div>
+
+        {/* Delete Confirmation Modal */}
+        {isDeleteModalOpen && (
+          <>
+            <div className="modal-backdrop fade show"></div>
+            <div className="modal fade show d-block" tabIndex="-1">
+              <div className="modal-dialog modal-dialog-centered">
+                <div className="modal-content">
+                  <div className="modal-header">
+                    <h5 className="modal-title">Confirm Delete</h5>
+                    <button type="button" className="btn-close" onClick={() => setIsDeleteModalOpen(false)}></button>
+                  </div>
+                  <div className="modal-body">
+                    <p>Are you sure you want to delete this encounter?</p>
+                  </div>
+                  <div className="modal-footer">
+                    <button type="button" className="btn btn-secondary" onClick={() => setIsDeleteModalOpen(false)}>Cancel</button>
+                    <button type="button" className="btn btn-danger" onClick={confirmDelete}>Delete</button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </>
+        )}
+
       </div>
     </div>
   );

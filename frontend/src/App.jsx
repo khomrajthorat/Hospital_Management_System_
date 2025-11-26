@@ -30,6 +30,8 @@ import AdminProfile from "./admin-dashboard/admin/AdminProfile";
 import AdminChangePassword from "./admin-dashboard/admin/AdminChangePassword";
 import EncounterList from "./admin-dashboard/admin/EncounterList";
 import EncounterTemplateList from "./admin-dashboard/admin/EncounterTemplateList";
+import EncounterDetails from "./admin-dashboard/admin/EncounterDetails";
+import EncounterTemplateDetails from "./admin-dashboard/admin/EncounterTemplateDetails";
 
 /* Patient */
 import PatientDashboard from "./patient-dashboard/Patient/PatientDashboard";
@@ -187,6 +189,12 @@ function App() {
         } />
         <Route path="/encounter-templates" element={
           <EncounterTemplateList sidebarCollapsed={sidebarCollapsed} toggleSidebar={toggleSidebar} />
+        } />
+        <Route path="/encounter-details/:id" element={
+          <EncounterDetails sidebarCollapsed={sidebarCollapsed} toggleSidebar={toggleSidebar} />
+        } />
+        <Route path="/encounter-template-details/:id" element={
+          <EncounterTemplateDetails sidebarCollapsed={sidebarCollapsed} toggleSidebar={toggleSidebar} />
         } />
 
         {/* Doctor Section */}

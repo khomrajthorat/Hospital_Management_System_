@@ -20,6 +20,7 @@ const billingRoutes = require("./routes/billingRoutes");
 const dashboardRoutes = require("./routes/dashboardRoutes");
 const userRoutes = require("./routes/userRoutes");
 const encounterRoutes = require("./routes/encounterRoutes");
+const encounterTemplateRoutes = require("./routes/encounterTemplateRoutes");
 
 const app = express();
 
@@ -51,6 +52,7 @@ app.use("/bills", billingRoutes);
 app.use("/dashboard-stats", dashboardRoutes);
 app.use("/", userRoutes); 
 app.use("/encounters", encounterRoutes);
+app.use("/encounter-templates", encounterTemplateRoutes);
 
 
 // Start the server

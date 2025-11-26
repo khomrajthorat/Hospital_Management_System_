@@ -34,6 +34,21 @@ const EncounterSchema = new mongoose.Schema({
     type: String,
     default: "active", // active or inactive
   },
+  problems: [{
+    type: String
+  }],
+  observations: [{
+    type: String
+  }],
+  notes: [{
+    type: String
+  }],
+  prescriptions: [{
+    name: String,
+    frequency: String,
+    duration: String,
+    instruction: String
+  }],
   createdAt: {
     type: Date,
     default: Date.now,

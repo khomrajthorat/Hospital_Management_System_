@@ -35,6 +35,18 @@ exports.getEncounters = async (req, res) => {
   }
 };
 
+// Update encounter
+exports.updateEncounter = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const updatedEncounter = await EncounterModel.findByIdAndUpdate(id, req.body, { new: true });
+    res.json(updatedEncounter);
+  } catch (err) {
+    console.error("Error updating encounter:", err);
+    res.status(500).json({ message: "Server error", error: err.message });
+  }
+};
+
 // Delete encounter
 exports.deleteEncounter = async (req, res) => {
   try {

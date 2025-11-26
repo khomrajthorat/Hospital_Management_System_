@@ -1,14 +1,32 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import Sidebar from "../components/Sidebar";
 import Navbar from "../components/Navbar";
-import { FaSearch, FaPlus, FaTimes } from "react-icons/fa";
+import { FaSearch, FaPlus, FaTimes, FaEdit, FaTrash, FaEye } from "react-icons/fa";
+import { useNavigate } from "react-router-dom";
+import axios from "axios";
+import toast from "react-hot-toast";
 import "../styles/services.css";
 
 export default function EncounterTemplateList({ sidebarCollapsed, toggleSidebar }) {
+  const navigate = useNavigate();
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [templateName, setTemplateName] = useState("");
-  // Mock data for now
   const [templates, setTemplates] = useState([]);
+  const [searchTerm, setSearchTerm] = useState("");
+
+  useEffect(() => {
+    fetchTemplates();
+  }, []);
+
+  const fetchTemplates = async () => {
+    try {
+      const res = await axios.get("http://localhost:3001/encounter-templates");
+      setTemplates(res.data);
+    } catch (err) {
+      console.error("Error fetching templates:", err);
+      toast.error("Failed to load templates");
+    }
+  };
 
   const handleAddClick = () => {
     setIsModalOpen(true);
@@ -19,20 +37,43 @@ export default function EncounterTemplateList({ sidebarCollapsed, toggleSidebar 
     setTemplateName("");
   };
 
-  const handleSaveTemplate = (e) => {
+  const handleSaveTemplate = async (e) => {
     e.preventDefault();
-    // User said: "when tap on add it goes to another page i will tell you that later"
-    // For now, we'll just close the modal and maybe log it.
-    console.log("Add template clicked:", templateName);
-    handleCloseModal();
-    // In future: navigate to the next page
+    try {
+      const res = await axios.post("http://localhost:3001/encounter-templates", { name: templateName });
+      toast.success("Template created successfully");
+      handleCloseModal();
+      // Redirect to details page to edit the rest
+      navigate(`/encounter-template-details/${res.data._id}`);
+    } catch (err) {
+      console.error("Error creating template:", err);
+      toast.error("Failed to create template");
+    }
   };
+
+  const handleDelete = async (id) => {
+    if (window.confirm("Are you sure you want to delete this template?")) {
+      try {
+        await axios.delete(`http://localhost:3001/encounter-templates/${id}`);
+        toast.success("Template deleted");
+        fetchTemplates();
+      } catch (err) {
+        console.error("Error deleting template:", err);
+        toast.error("Failed to delete template");
+      }
+    }
+  };
+
+  const filteredTemplates = templates.filter(t => 
+    t.name.toLowerCase().includes(searchTerm.toLowerCase()) || 
+    t._id.toLowerCase().includes(searchTerm.toLowerCase())
+  );
 
   return (
     <div className="d-flex">
       <Sidebar collapsed={sidebarCollapsed} />
       <div
-        className="flex-grow-1 main-content-transition"
+        className="flex-grow-1 main-content-transition fade-in"
         style={{
           marginLeft: sidebarCollapsed ? "64px" : "250px",
           minHeight: "100vh",
@@ -48,7 +89,7 @@ export default function EncounterTemplateList({ sidebarCollapsed, toggleSidebar 
             <div className="d-flex gap-2">
               <button
                 className="btn btn-outline-light btn-sm d-flex align-items-center gap-2"
-                onClick={() => window.history.back()}
+                onClick={() => navigate(-1)}
               >
                 Back
               </button>
@@ -71,6 +112,8 @@ export default function EncounterTemplateList({ sidebarCollapsed, toggleSidebar 
                 type="text"
                 className="form-control border-start-0"
                 placeholder="Search encounter Template data by id, name"
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
               />
             </div>
           </div>
@@ -111,22 +154,38 @@ export default function EncounterTemplateList({ sidebarCollapsed, toggleSidebar 
                   </tr>
 
                   {/* Data Rows */}
-                  {templates.length === 0 ? (
+                  {filteredTemplates.length === 0 ? (
                     <tr>
                       <td colSpan="4" className="text-center py-5 text-muted">
                         No Data Found
                       </td>
                     </tr>
                   ) : (
-                    templates.map((t, index) => (
-                      <tr key={index}>
+                    filteredTemplates.map((t, index) => (
+                      <tr key={t._id}>
                         <td>
                           <input type="checkbox" />
                         </td>
                         <td>{index + 1}</td>
                         <td>{t.name}</td>
                         <td className="text-end">
-                          {/* Actions would go here */}
+                          <div className="d-flex justify-content-end gap-2">
+                            <button 
+                              className="btn btn-sm btn-outline-primary"
+                              onClick={() => navigate(`/encounter-template-details/${t._id}`)}
+                            >
+                              <FaEdit />
+                            </button>
+                            <button className="btn btn-sm btn-outline-info">
+                              <FaEye />
+                            </button>
+                            <button 
+                              className="btn btn-sm btn-outline-danger"
+                              onClick={() => handleDelete(t._id)}
+                            >
+                              <FaTrash />
+                            </button>
+                          </div>
                         </td>
                       </tr>
                     ))
@@ -150,7 +209,7 @@ export default function EncounterTemplateList({ sidebarCollapsed, toggleSidebar 
               </div>
               <div className="d-flex align-items-center gap-2">
                 <span className="text-muted small">
-                  Page 1 of {Math.ceil(templates.length / 10) || 1}
+                  Page 1 of {Math.ceil(filteredTemplates.length / 10) || 1}
                 </span>
                 <button className="btn btn-sm btn-outline-secondary" disabled>
                   Prev
