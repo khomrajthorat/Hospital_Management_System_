@@ -1,454 +1,603 @@
-// src/admin/Services.jsx
-import React, { useEffect, useState } from "react";
-import api from "../utils/api";
+// src/admin-dashboard/Services.jsx
+import React, { useEffect, useState, useRef } from "react"
+import {
+  FiEdit2,
+  FiTrash2,
+  FiPlus,
+  FiUpload,
+  FiSearch,
+  FiFileText,
+  FiChevronLeft,
+  FiChevronRight,
+} from "react-icons/fi";
+import { FaSort } from "react-icons/fa";
+import axios from "axios";
 import Navbar from "../components/Navbar";
 import Sidebar from "../components/Sidebar";
-import DurationPicker from "../components/DurationPicker";
+
+// Import the separate CSS file
 import "../styles/services.css";
-import { FaEdit, FaTrash } from "react-icons/fa";
 
-export default function Services({ sidebarCollapsed = false, toggleSidebar }) {
-  const [services, setServices] = useState([]);
-  const [loading, setLoading] = useState(false);
-  const [patients, setPatients] = useState([]);
+/* ---------- Local axios instance ---------- */
+const api = axios.create({ baseURL: "http://localhost:3001" });
 
-  // Put this just below your useState hooks in Services component
+/* ---------- Helper: Status Toggle Switch ---------- */
+function StatusToggle({ active, onClick }) {
+  return (
+    <div className="d-flex align-items-center gap-2">
+      <div 
+        onClick={() => onClick(!active)}
+        className={`status-toggle-track ${active ? "active" : ""}`}
+      >
+        <div className="status-toggle-thumb" />
+      </div>
+      
+      <span className={`badge border status-badge ${active ? "active" : ""}`}>
+        {active ? "ACTIVE" : "INACTIVE"}
+      </span>
+    </div>
+  );
+}
 
-  const clinicOptions = [
-    "Valley Clinic",
-    "City Clinic",
-    "One Care Main Clinic",
-    "Downtown Clinic",
-  ];
+/* ---------- Service Form (Modal) ---------- */
+// function ServiceForm({ initial, onClose, onSave }) {
+//   const defaultCategories = ["System Service", "General Dentistry", "Telemed"];
+//   const clinicOptions = ["Valley Clinic", "Grand Care", "Downtown Health"];
+//   const doctorOptions = ["dr. rudrawar viraj | 1751", "dr. green", "dr. taylor"];
+  
+//   const [categories, setCategories] = useState(defaultCategories);
+//   const [form, setForm] = useState(
+//     initial || { serviceId: "", name: "", category: defaultCategories[0] || "", charges: "", isTelemed: "No", clinicName: "", doctor: "", duration: "", active: true, allowMulti: "Yes", imageFile: null, imagePreview: "" }
+//   );
 
-  const categoryOptions = [
-    "general dentistry",
-    "system service",
-    "checkup",
-    "telemed",
-    "physiotherapy",
-  ];
+//   useEffect(() => { if (initial && initial.imageUrl) setForm((prev) => ({ ...prev, imagePreview: initial.imageUrl })); }, [initial]);
 
-  const doctorOptions = [
-    "Dr. Viraj Rudrawar",
-    "Dr. Harshada Sohani",
-    "Dr. Tanmay Mule",
-    "Dr. Smith",
-    "Dr. John Doe",
-  ];
+//   const handleCategoryKeyDown = (e) => {
+//     if (e.key === "Enter") {
+//       e.preventDefault();
+//       const val = e.currentTarget.value.trim();
+//       if (val && !categories.includes(val)) {
+//         setCategories((prev) => [val, ...prev]);
+//         setForm((f) => ({ ...f, category: val }));
+//         e.currentTarget.value = "";
+//       }
+//     }
+//   };
+  
+//   const change = (k) => (e) => setForm({ ...form, [k]: e.target.value });
+//   const changeBool = (k) => (e) => setForm({ ...form, [k]: e.target.value === "ACTIVE" });
+  
+//   const onPickImage = (e) => { 
+//     const file = e.target.files?.[0]; 
+//     if (!file) return; 
+//     const url = URL.createObjectURL(file); 
+//     setForm({ ...form, imageFile: file, imagePreview: url }); 
+//   };
 
-  const [form, setForm] = useState({
-    name: "",
-    clinicName: "",
-    doctor: "",
-    charges: "",
-    duration: "00:00",
-    category: "",
-    active: true,
-  });
+//   const submit = async (e) => {
+//     e.preventDefault();
+//     const formData = new FormData();
+//     Object.keys(form).forEach(key => {
+//       if (key !== 'imageFile' && key !== 'imagePreview') {
+//         if (key === 'active') formData.append(key, form[key]);
+//         else if (key === 'isTelemed' || key === 'allowMulti') formData.append(key, form[key] === "Yes");
+//         else formData.append(key, form[key]);
+//       }
+//     });
+//     if (form.imageFile) formData.append("image", form.imageFile);
 
-  const [editId, setEditId] = useState(null);
-  const [searchTerm, setSearchTerm] = useState("");
-  const [statusFilter, setStatusFilter] = useState("all");
-  const [showForm, setShowForm] = useState(true);
+//     try { await onSave(formData); } catch (err) { alert(err?.response?.data?.message || "Failed"); }
+//   };
 
-  const loadServices = async () => {
-    try {
-      setLoading(true);
-      const res = await api.get("/services");
-      console.log("Frontend loadServices ->", res.data);   // 👈 add this line
-      setServices(res.data || []);
-    } catch (err) {
-      console.error("loadServices error", err);
-      alert("Unable to load services. Check backend.");
-    } finally {
-      setLoading(false);
-    }
+//   return (
+//     <div className="modal fade show d-block custom-modal-overlay" tabIndex="-1">
+//       <div className="modal-dialog modal-xl">
+//         <form className="modal-content" onSubmit={submit}>
+//           <div className="modal-header">
+//             <h5 className="modal-title">{initial ? "Edit Service" : "Add Service"}</h5>
+//             <div className="d-flex gap-2">
+//               <button type="button" className="btn btn-outline-secondary btn-sm">Import data</button>
+//               <button type="button" className="btn btn-light btn-sm" onClick={onClose}>close form</button>
+//             </div>
+//           </div>
+//           <div className="modal-body">
+//             <div className="row g-3">
+//               <div className="col-lg-9">
+//                 <div className="row g-3">
+//                   <div className="col-md-6">
+//                     <label className="form-label">Category*</label>
+//                     <select className="form-select" value={form.category} onChange={change("category")}>
+//                       {categories.map(c=><option key={c}>{c}</option>)}
+//                     </select>
+//                     <input className="form-control mt-1" placeholder="Add new..." onKeyDown={handleCategoryKeyDown}/>
+//                   </div>
+//                   <div className="col-md-6"><label className="form-label">Name*</label><input className="form-control" value={form.name} onChange={change("name")} required /></div>
+//                   <div className="col-md-6"><label className="form-label">Charges*</label><input className="form-control" value={form.charges} onChange={change("charges")} required /></div>
+//                   <div className="col-md-6"><label className="form-label">Telemed?*</label><select className="form-select" value={form.isTelemed} onChange={change("isTelemed")}><option>No</option><option>Yes</option></select></div>
+//                   <div className="col-md-6"><label className="form-label">Clinic*</label><select className="form-select" value={form.clinicName} onChange={change("clinicName")} required><option value="">Select</option>{clinicOptions.map(c=><option key={c}>{c}</option>)}</select></div>
+//                   <div className="col-md-6"><label className="form-label">Doctor*</label><select className="form-select" value={form.doctor} onChange={change("doctor")} required><option value="">Select</option>{doctorOptions.map(d=><option key={d}>{d}</option>)}</select></div>
+//                   <div className="col-md-6"><label className="form-label">Duration</label><input className="form-control" value={form.duration} onChange={change("duration")} /></div>
+//                   <div className="col-md-6"><label className="form-label">Status*</label><select className="form-select" value={form.active?"ACTIVE":"INACTIVE"} onChange={changeBool("active")}><option>ACTIVE</option><option>INACTIVE</option></select></div>
+//                   <div className="col-md-6"><label className="form-label">Multi?*</label><select className="form-select" value={form.allowMulti} onChange={change("allowMulti")}><option>Yes</option><option>No</option></select></div>
+//                 </div>
+//               </div>
+//               <div className="col-lg-3 d-flex flex-column align-items-center">
+//                  <div className="image-upload-wrapper">
+//                    <div className="image-preview-circle">
+//                      {form.imagePreview ? 
+//                        <img src={form.imagePreview} className="image-preview-img" alt=""/> : 
+//                        <span className="image-placeholder-icon">🖼️</span>
+//                      }
+//                    </div>
+//                    <label className="image-edit-btn">
+//                      <input type="file" accept="image/*" hidden onChange={onPickImage} />
+//                      <FiEdit2 size={14}/>
+//                    </label>
+//                  </div>
+//               </div>
+//             </div>
+//           </div>
+//           <div className="modal-footer">
+//             <button className="btn btn-primary" type="submit">Save</button>
+//             <button type="button" className="btn btn-light" onClick={onClose}>Cancel</button>
+//           </div>
+//         </form>
+//       </div>
+//     </div>
+//   );
+// }
+
+/* ---------- NEW COMPONENT: Duration Picker ---------- */
+function DurationPicker({ value, onChange }) {
+  const [isOpen, setIsOpen] = useState(false);
+  const containerRef = useRef(null);
+
+  // Parse current value (e.g., "02:30") or default to "00:00"
+  const [hh, mm] = (value || "00:00").split(":");
+  
+  // Data generation
+  // Hours: 00 to 12
+  const hours = Array.from({ length: 13 }, (_, i) => i.toString().padStart(2, "0"));
+  // Minutes: 00, 05, 10... 55
+  const minutes = ["00", "05", "10", "15", "20", "25", "30", "35", "40", "45", "50", "55"];
+
+  const handleSelect = (type, val) => {
+    const newH = type === "h" ? val : hh || "00";
+    const newM = type === "m" ? val : mm || "00";
+    onChange(`${newH}:${newM}`);
   };
 
+  // Close dropdown when clicking outside
   useEffect(() => {
-    loadServices();
+    function handleClickOutside(event) {
+      if (containerRef.current && !containerRef.current.contains(event.target)) {
+        setIsOpen(false);
+      }
+    }
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
-  const loadPatients = async () => {
-    try {
-      const res = await api.get("/patients");
-      setPatients(res.data);
-    } catch (err) {
-      console.error("Error loading patients:", err);
-    }
-  };
-
-
-  // Add service
-  const addService = async () => {
-    if (!form.name || !form.name.trim()) {
-      alert("Please enter patient name");
-      return;
-    }
-
-    try {
-      const res = await api.post("/services", form);
-      setServices((prev) => [res.data, ...prev]);
-      clearForm();
-      window.scrollTo({ top: 300, behavior: "smooth" });
-    } catch (err) {
-      console.error("addService error", err);
-      if (err.response) alert("Server error: " + JSON.stringify(err.response.data));
-      else alert("Network error: " + err.message);
-    }
-  };
-
-  // Start edit
-  const startEdit = (s) => {
-    setEditId(s._id);
-    setShowForm(true);
-    setForm({
-      name: s.name || "",
-      clinicName: s.clinicName || "",
-      doctor: s.doctor || "",
-      charges: s.charges || "",
-      duration: s.duration || "00:00",
-      category: s.category || "",
-      active: s.active ?? true,
-    });
-    window.scrollTo({ top: 120, behavior: "smooth" });
-  };
-
-  // Update
-  const updateService = async () => {
-    if (!editId) return;
-    if (!form.name || !form.name.trim()) {
-      alert("Please enter service name");
-      return;
-    }
-
-    try {
-      const res = await api.put(`/services/${editId}`, form);
-      setServices((prev) => prev.map((s) => (s._id === editId ? res.data : s)));
-      setEditId(null);
-      clearForm();
-    } catch (err) {
-      console.error("updateService", err);
-      alert("Update failed");
-    }
-  };
-
-  const cancelEdit = () => {
-    setEditId(null);
-    clearForm();
-  };
-
-  // Delete
-  const deleteService = async (id) => {
-    if (!window.confirm("Delete this service?")) return;
-    try {
-      await api.delete(`/services/${id}`);
-      setServices((prev) => prev.filter((s) => s._id !== id));
-    } catch (err) {
-      console.error("deleteService", err);
-      alert("Delete failed");
-    }
-  };
-
-  // Toggle active
-  const toggleActive = async (id) => {
-    try {
-      const res = await api.put(`/services/toggle/${id}`);
-      setServices((prev) => prev.map((s) => (s._id === id ? res.data : s)));
-    } catch (err) {
-      console.error("toggleActive", err);
-      alert("Toggle failed");
-    }
-  };
-
-  const clearForm = () =>
-    setForm({
-      name: "",
-      clinicName: "",
-      doctor: "",
-      charges: "",
-      duration: "00:00",
-      category: "",
-      active: true,
-    });
-
-  // Filtered list
-  const filtered = services
-    .filter((s) => (s.name || "").toLowerCase().includes(searchTerm.toLowerCase()))
-    .filter((s) => {
-      if (statusFilter === "all") return true;
-      if (statusFilter === "active") return !!s.active;
-      return !s.active;
-    });
-
   return (
-    <div>
-      <Sidebar collapsed={sidebarCollapsed} />
+    <div className="duration-picker-wrapper" ref={containerRef}>
+      <input
+        type="text"
+        className="form-control duration-input"
+        placeholder="HH:MM"
+        value={value}
+        readOnly // Prevent typing, force selection
+        onClick={() => setIsOpen(!isOpen)}
+      />
+      
+      {isOpen && (
+        <div className="duration-dropdown">
+          {/* Hours Column */}
+          <div className="duration-column">
+            <div className="duration-header">HH</div>
+            {hours.map((h) => (
+              <div
+                key={h}
+                className={`duration-item ${hh === h ? "selected" : ""}`}
+                onClick={() => handleSelect("h", h)}
+              >
+                {h}
+              </div>
+            ))}
+          </div>
 
-      <div
-        className="flex-grow-1 main-content-transition"
-        style={{ marginLeft: sidebarCollapsed ? 64 : 250, minHeight: "100vh" }}
-      >
-        <Navbar toggleSidebar={toggleSidebar} />
-
-        <div className="container-fluid mt-3">
-          <div className="services-topbar mb-2 services-card">
-            <h5 className="fw-bold text-white mb-0">Service List</h5>
-            <div className="services-actions">
-              <button className="btn btn-outline-light btn-sm">
-                <i className="bi bi-upload me-1"></i> Import data
-              </button>
-
-              <button
-                className="btn btn-light btn-sm"
+          {/* Minutes Column */}
+          <div className="duration-column">
+            <div className="duration-header">mm</div>
+            {minutes.map((m) => (
+              <div
+                key={m}
+                className={`duration-item ${mm === m ? "selected" : ""}`}
                 onClick={() => {
-                  setShowForm((s) => !s);
-                  if (!showForm) {
-                    clearForm();
-                    setEditId(null);
-                    setTimeout(() => window.scrollTo({ top: 120, behavior: "smooth" }), 80);
-                  }
+                  handleSelect("m", m);
+                  setIsOpen(false); // Close on minute selection (optional preference)
                 }}
               >
-                <i className="bi bi-plus-lg me-1"></i> {showForm ? "Hide Form" : "Add Service"}
+                {m}
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+/* ---------- UPDATED: Service Form (Modal) ---------- */
+function ServiceForm({ initial, onClose, onSave }) {
+  const defaultCategories = ["System Service", "General Dentistry", "Telemed"];
+  const clinicOptions = ["Valley Clinic", "Grand Care", "Downtown Health"];
+  const doctorOptions = ["dr. rudrawar viraj | 1751", "dr. green", "dr. taylor"];
+  
+  const [categories, setCategories] = useState(defaultCategories);
+  const [form, setForm] = useState(
+    initial || { 
+      serviceId: "", name: "", category: defaultCategories[0] || "", 
+      charges: "", isTelemed: "No", clinicName: "", doctor: "", 
+      duration: "00:00", // Default duration format
+      active: true, allowMulti: "Yes", imageFile: null, imagePreview: "" 
+    }
+  );
+
+  useEffect(() => { 
+    if (initial && initial.imageUrl) {
+        setForm((prev) => ({ ...prev, imagePreview: initial.imageUrl })); 
+    }
+  }, [initial]);
+
+  const handleCategoryKeyDown = (e) => {
+    if (e.key === "Enter") {
+      e.preventDefault();
+      const val = e.currentTarget.value.trim();
+      if (val && !categories.includes(val)) {
+        setCategories((prev) => [val, ...prev]);
+        setForm((f) => ({ ...f, category: val }));
+        e.currentTarget.value = "";
+      }
+    }
+  };
+  
+  const change = (k) => (e) => setForm({ ...form, [k]: e.target.value });
+  // Specific handler for the Duration Picker which passes value directly, not an event
+  const changeDuration = (val) => setForm({ ...form, duration: val });
+  const changeBool = (k) => (e) => setForm({ ...form, [k]: e.target.value === "ACTIVE" });
+  
+  const onPickImage = (e) => { 
+    const file = e.target.files?.[0]; 
+    if (!file) return; 
+    const url = URL.createObjectURL(file); 
+    setForm({ ...form, imageFile: file, imagePreview: url }); 
+  };
+
+  const submit = async (e) => {
+    e.preventDefault();
+    const formData = new FormData();
+    Object.keys(form).forEach(key => {
+      if (key !== 'imageFile' && key !== 'imagePreview') {
+        if (key === 'active') formData.append(key, form[key]);
+        else if (key === 'isTelemed' || key === 'allowMulti') formData.append(key, form[key] === "Yes");
+        else formData.append(key, form[key]);
+      }
+    });
+    if (form.imageFile) formData.append("image", form.imageFile);
+
+    try { await onSave(formData); } catch (err) { alert(err?.response?.data?.message || "Failed"); }
+  };
+
+  return (
+    <div className="modal fade show d-block custom-modal-overlay" tabIndex="-1">
+      <div className="modal-dialog modal-xl">
+        <form className="modal-content" onSubmit={submit}>
+          <div className="modal-header">
+            <h5 className="modal-title">{initial ? "Edit Service" : "Add Service"}</h5>
+            <div className="d-flex gap-2">
+              <button type="button" className="btn btn-outline-secondary btn-sm">Import data</button>
+              <button type="button" className="btn btn-light btn-sm" onClick={onClose}>close form</button>
+            </div>
+          </div>
+          <div className="modal-body">
+            <div className="row g-3">
+              <div className="col-lg-9">
+                <div className="row g-3">
+                  <div className="col-md-6">
+                    <label className="form-label">Category*</label>
+                    <select className="form-select" value={form.category} onChange={change("category")}>
+                      {categories.map(c=><option key={c}>{c}</option>)}
+                    </select>
+                    <input className="form-control mt-1" placeholder="Add new..." onKeyDown={handleCategoryKeyDown}/>
+                  </div>
+                  <div className="col-md-6"><label className="form-label">Name*</label><input className="form-control" value={form.name} onChange={change("name")} required /></div>
+                  <div className="col-md-6"><label className="form-label">Charges*</label><input className="form-control" value={form.charges} onChange={change("charges")} required /></div>
+                  <div className="col-md-6"><label className="form-label">Telemed?*</label><select className="form-select" value={form.isTelemed} onChange={change("isTelemed")}><option>No</option><option>Yes</option></select></div>
+                  <div className="col-md-6"><label className="form-label">Clinic*</label><select className="form-select" value={form.clinicName} onChange={change("clinicName")} required><option value="">Select</option>{clinicOptions.map(c=><option key={c}>{c}</option>)}</select></div>
+                  <div className="col-md-6"><label className="form-label">Doctor*</label><select className="form-select" value={form.doctor} onChange={change("doctor")} required><option value="">Select</option>{doctorOptions.map(d=><option key={d}>{d}</option>)}</select></div>
+                  
+                  {/* --- UPDATED DURATION FIELD --- */}
+                  <div className="col-md-6">
+                    <label className="form-label">Duration</label>
+                    <DurationPicker 
+                        value={form.duration} 
+                        onChange={changeDuration} 
+                    />
+                  </div>
+                  
+                  <div className="col-md-6"><label className="form-label">Status*</label><select className="form-select" value={form.active?"ACTIVE":"INACTIVE"} onChange={changeBool("active")}><option>ACTIVE</option><option>INACTIVE</option></select></div>
+                  <div className="col-md-6"><label className="form-label">Multi?*</label><select className="form-select" value={form.allowMulti} onChange={change("allowMulti")}><option>Yes</option><option>No</option></select></div>
+                </div>
+              </div>
+              <div className="col-lg-3 d-flex flex-column align-items-center">
+                 <div className="image-upload-wrapper">
+                   <div className="image-preview-circle">
+                     {form.imagePreview ? 
+                       <img src={form.imagePreview} className="image-preview-img" alt=""/> : 
+                       <span className="image-placeholder-icon">🖼️</span>
+                     }
+                   </div>
+                   <label className="image-edit-btn">
+                     <input type="file" accept="image/*" hidden onChange={onPickImage} />
+                     <FiEdit2 size={14}/>
+                   </label>
+                 </div>
+              </div>
+            </div>
+          </div>
+          <div className="modal-footer">
+            <button className="btn btn-primary" type="submit">Save</button>
+            <button type="button" className="btn btn-light" onClick={onClose}>Cancel</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  );
+}
+
+/* ---------- Main Services Component ---------- */
+export default function Services({ sidebarCollapsed = false, toggleSidebar }) {
+  const [rows, setRows] = useState([]);
+  const [total, setTotal] = useState(0);
+  const [page, setPage] = useState(1);
+  const [limit, setLimit] = useState(10);
+  const [search, setSearch] = useState("");
+  
+  // New Filter State
+  const [filters, setFilters] = useState({
+    serviceId: "", name: "", clinicName: "", doctor: "", charges: "", duration: "", category: "", status: ""
+  });
+
+  const [loading, setLoading] = useState(true);
+  const [modalOpen, setModalOpen] = useState(false);
+  const [editing, setEditing] = useState(null);
+
+  const handleFilterChange = (key, value) => {
+    setFilters(prev => ({ ...prev, [key]: value }));
+    setPage(1);
+  };
+
+  const load = async () => {
+    setLoading(true);
+    try {
+      const params = { page, limit, q: search, ...filters };
+      const { data } = await api.get("/services", { params });
+      if (Array.isArray(data)) { setRows(data); setTotal(data.length); }
+      else { setRows(data.rows || []); setTotal(data.total || 0); }
+    } catch (e) { console.error(e); }
+    setLoading(false);
+  };
+
+  useEffect(() => { load(); }, [page, limit]);
+  useEffect(() => { 
+    const t = setTimeout(() => { setPage(1); load(); }, 400); 
+    return () => clearTimeout(t); 
+  }, [search, filters]);
+
+  const onAdd = () => { setEditing(null); setModalOpen(true); };
+  const onEdit = (r) => { setEditing(r); setModalOpen(true); };
+  
+  const save = async (fd) => {
+    const cfg = { headers: { "Content-Type": "multipart/form-data" } };
+    try {
+      if (editing) await api.put(`/services/${editing._id}`, fd, cfg);
+      else await api.post("/services", fd, cfg);
+      setModalOpen(false); load();
+    } catch (e) { alert("Failed"); }
+  };
+  
+  const del = async (id) => { if (window.confirm("Delete?")) { await api.delete(`/services/${id}`); load(); } };
+  
+  const toggleActive = async (r, val) => {
+    setRows(p => p.map(x => x._id === r._id ? { ...x, active: val } : x));
+    try { await api.put(`/services/${r._id}`, { active: val }); } catch { load(); }
+  };
+
+  return (
+    <div className="d-flex">
+      <Sidebar collapsed={sidebarCollapsed} />
+      <div 
+        className="flex-grow-1 main-content-transition" 
+        style={{ marginLeft: sidebarCollapsed ? 64 : 250 }} // Dynamic inline style kept for JS logic
+      >
+        <Navbar toggleSidebar={toggleSidebar} />
+        
+        <div className="container-fluid py-3">
+          
+          {/* Top Header Row */}
+          <div className="d-flex justify-content-between align-items-center mb-3 bg-white p-3 rounded shadow-sm border">
+            <h5 className="mb-0 fw-bold text-secondary">Service List</h5>
+            <div className="d-flex gap-2">
+              <button className="btn btn-primary btn-sm px-3 fw-bold btn-primary-custom">
+                 <FiUpload className="me-1"/> Import data
+              </button>
+              <button className="btn btn-primary btn-sm px-3 fw-bold btn-primary-custom" onClick={onAdd}>
+                 <FiPlus className="me-1"/> Add Service
               </button>
             </div>
           </div>
 
-          {/* Form */}
-          {showForm && (
-            <div className="card p-3 mb-3">
-              <div className="row g-2">
-
-                <div className="col-md-2">
-                  <input
-                    className="form-control"
-                    placeholder="Patient name *"
-                    value={form.name}
-                    onChange={(e) => setForm({ ...form, name: e.target.value })}
-                  />
-                </div>
-
-
-
-                <div className="col-md-2">
-                  <select
-                    className="form-select"
-                    value={form.clinicName}
-                    onChange={(e) => setForm({ ...form, clinicName: e.target.value })}
-                  >
-                    <option value="">Select clinic</option>
-                    {clinicOptions.map((c) => (
-                      <option key={c} value={c}>
-                        {c}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-
-
-                <div className="col-md-2">
-                  <select
-                    className="form-select"
-                    value={form.doctor}
-                    onChange={(e) => setForm({ ...form, doctor: e.target.value })}
-                  >
-                    <option value="">Select doctor</option>
-                    {doctorOptions.map((d) => (
-                      <option key={d} value={d}>
-                        {d}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-
-
-                <div className="col-md-1">
-                  <input className="form-control" placeholder="Charges" value={form.charges} onChange={(e) => setForm({ ...form, charges: e.target.value })} />
-                </div>
-
-                <div className="col-md-1">
-                  <DurationPicker value={form.duration || "00:00"} onChange={(val) => setForm({ ...form, duration: val })} />
-                </div>
-
-                <div className="col-md-2">
-                  <select
-                    className="form-select"
-                    value={form.category}
-                    onChange={(e) => setForm({ ...form, category: e.target.value })}
-                  >
-                    <option value="">Select service type</option>
-                    {categoryOptions.map((cat) => (
-                      <option key={cat} value={cat}>
-                        {cat}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-
-
-                <div className="col-md-1 d-flex align-items-center">
-                  <div className="form-check form-switch">
-                    <input className="form-check-input" type="checkbox" checked={form.active} onChange={(e) => setForm({ ...form, active: e.target.checked })} />
-                    <label style={{ fontSize: 12 }}>Active</label>
-                  </div>
-                </div>
+          {/* Search Bar Row */}
+          <div className="bg-white p-3 rounded shadow-sm border mb-3">
+            <div className="d-flex gap-3 align-items-center">
+              <div className="input-group">
+                 <span className="input-group-text bg-white border-end-0 text-muted"><FiSearch/></span>
+                 <input 
+                   className="form-control border-start-0 ps-0 search-input" 
+                   placeholder="Search services data by id, doctor, name, category, price and status(:active or :inactive)"
+                   value={search}
+                   onChange={e => setSearch(e.target.value)}
+                 />
               </div>
-
-              <div className="mt-3">
-                {editId ? (
-                  <>
-                    <button className="btn btn-success" onClick={updateService}>Update Service</button>
-                    <button className="btn btn-secondary ms-2" onClick={cancelEdit}>Cancel</button>
-                  </>
-                ) : (
-                  <>
-                    <button className="btn btn-primary" onClick={addService}>Add Service</button>
-                    <button className="btn btn-outline-secondary ms-2" onClick={clearForm}>Clear</button>
-                  </>
-                )}
+              <div className="d-flex gap-2 text-secondary">
+                 <button className="btn btn-light btn-sm border"><FiFileText/></button>
+                 <button className="btn btn-light btn-sm border"><FiFileText/></button>
+                 <button className="btn btn-light btn-sm border"><FiFileText/></button>
               </div>
             </div>
-          )}
-
-          {/* Search & Filters */}
-          <div className="mb-3 d-flex gap-2">
-            <input className="form-control" style={{ maxWidth: 300 }} placeholder="Search by name..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} />
-            <select className="form-select" style={{ width: 150 }} value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)}>
-              <option value="all">All</option>
-              <option value="active">Active</option>
-              <option value="inactive">Inactive</option>
-            </select>
           </div>
 
-          {/* Table */}
-          <div className="card services-card">
-            <div className="card-body">
-              <div className="table-responsive">
-                <table className="table table-borderless align-middle">
-                  <thead>
-                    <tr>
-                      <th></th>
-                      <th>Service ID</th>
-                      <th>Name</th>
-                      <th>Clinic Name</th>
-                      <th>Doctor</th>
-                      <th>Charges</th>
-                      <th>Duration</th>
-                      <th>Category</th>
-                      <th>Status</th>
-                      <th>Action</th>
-                    </tr>
-                  </thead>
+          {/* Table Container */}
+          <div className="bg-white rounded shadow-sm border overflow-hidden">
+            <div className="table-responsive">
+              <table className="table table-hover align-middle mb-0 custom-table">
+                <thead className="bg-light text-secondary">
+                  <tr>
+                    <th className="py-3 ps-3" style={{width: '40px'}}><input type="checkbox" className="form-check-input"/></th>
+                    <th className="py-3 text-nowrap" style={{width: '60px'}}>ID <FaSort className="ms-1 small text-muted"/></th>
+                    <th className="py-3 text-nowrap" style={{width: '100px'}}>Service ID <FaSort className="ms-1 small text-muted"/></th>
+                    <th className="py-3 text-nowrap">Name <FaSort className="ms-1 small text-muted"/></th>
+                    <th className="py-3 text-nowrap">Clinic Name <FaSort className="ms-1 small text-muted"/></th>
+                    <th className="py-3 text-nowrap">Doctor <FaSort className="ms-1 small text-muted"/></th>
+                    <th className="py-3 text-nowrap">Charges <FaSort className="ms-1 small text-muted"/></th>
+                    <th className="py-3 text-nowrap">Duration <FaSort className="ms-1 small text-muted"/></th>
+                    <th className="py-3 text-nowrap">Category <FaSort className="ms-1 small text-muted"/></th>
+                    <th className="py-3 text-nowrap">Status <FaSort className="ms-1 small text-muted"/></th>
+                    <th className="text-end pe-3 text-nowrap" style={{width: '80px'}}>Action <FaSort className="ms-1 small text-muted"/></th>
+                  </tr>
+                  
+                  {/* Filter Row */}
+                  <tr className="bg-white align-middle">
+                      <td className="ps-3 border-bottom"></td>
+                      <td className="border-bottom p-1"><input className="form-control form-control-sm table-filter-input" placeholder="ID" disabled /></td>
+                      <td className="border-bottom p-1">
+                         <input className="form-control form-control-sm table-filter-input" placeholder="Service ID" 
+                               value={filters.serviceId} onChange={(e) => handleFilterChange("serviceId", e.target.value)}/>
+                      </td>
+                      <td className="border-bottom p-1">
+                         <input className="form-control form-control-sm table-filter-input" placeholder="Filter Name" 
+                               value={filters.name} onChange={(e) => handleFilterChange("name", e.target.value)}/>
+                      </td>
+                      <td className="border-bottom p-1">
+                         <input className="form-control form-control-sm table-filter-input" placeholder="Filter Clinic" 
+                               value={filters.clinicName} onChange={(e) => handleFilterChange("clinicName", e.target.value)}/>
+                      </td>
+                      <td className="border-bottom p-1">
+                         <input className="form-control form-control-sm table-filter-input" placeholder="Filter doctor" 
+                               value={filters.doctor} onChange={(e) => handleFilterChange("doctor", e.target.value)}/>
+                      </td>
+                      <td className="border-bottom p-1">
+                         <input className="form-control form-control-sm table-filter-input" placeholder="Filter Charge" 
+                               value={filters.charges} onChange={(e) => handleFilterChange("charges", e.target.value)}/>
+                      </td>
+                      <td className="border-bottom p-1">
+                         <input className="form-control form-control-sm table-filter-input" placeholder="HH:mm" 
+                               value={filters.duration} onChange={(e) => handleFilterChange("duration", e.target.value)}/>
+                      </td>
+                      <td className="border-bottom p-1">
+                         <select className="form-select form-select-sm table-filter-input"
+                                 value={filters.category} onChange={(e) => handleFilterChange("category", e.target.value)}>
+                            <option value="">Filter Name</option>
+                            <option value="System Service">System Service</option>
+                            <option value="General Dentistry">General Dentistry</option>
+                            <option value="Telemed">Telemed</option>
+                         </select>
+                      </td>
+                      <td className="border-bottom p-1">
+                         <select className="form-select form-select-sm table-filter-input"
+                                 value={filters.status} onChange={(e) => handleFilterChange("status", e.target.value)}>
+                            <option value="">Filter status</option>
+                            <option value="active">Active</option>
+                            <option value="inactive">Inactive</option>
+                         </select>
+                      </td>
+                      <td className="border-bottom"></td>
+                  </tr>
+                </thead>
+                <tbody>
+                  {loading ? (
+                    <tr><td colSpan="11" className="text-center py-5">Loading...</td></tr>
+                  ) : rows.length === 0 ? (
+                    <tr><td colSpan="11" className="text-center py-5">No services found.</td></tr>
+                  ) : (
+                    rows.map((r, i) => {
+                      const displayName = r.isTelemed ? "Telemed" : "Checkup";
+                      const displayInitial = displayName.charAt(0);
 
-                  <tbody>
-                    {filtered.length === 0 ? (
-                      <tr>
-                        <td colSpan="11" className="text-center py-4">
-                          No services found
-                        </td>
-                      </tr>
-                    ) : (
-                      filtered.map((s, index) => (
-                        <tr key={s._id}>
-                          {/* checkbox */}
-                          <td>
-                            <input type="checkbox" />
-                          </td>
-
-                          {/* # */}
-                          <td>{index + 1}</td>
-
-                          {/* Service ID
-                          <td>{s.serviceId ?? "-"}</td> */}
-
-                          {/* Patient/Name */}
+                      return (
+                        <tr key={r._id}>
+                          <td className="ps-3"><input type="checkbox" className="form-check-input"/></td>
+                          <td className="fw-bold text-secondary">{47 - i}</td>
+                          <td className="text-muted">{r.serviceId || (i+1)}</td>
                           <td>
                             <div className="d-flex align-items-center gap-2">
-                              <div className="avatar-circle">
-                                {(s.name || "").charAt(0).toUpperCase()}
-                              </div>
-                              {s.name}
+                               <div className="service-avatar-circle">
+                                 {r.imageUrl ? <img src={r.imageUrl} alt="" className="service-avatar-img"/> : displayInitial}
+                               </div>
+                               <span className="fw-semibold text-dark">{displayName}</span>
                             </div>
                           </td>
-
-                          {/* Clinic */}
-                          <td>{s.clinicName}</td>
-
-                          {/* Doctor */}
-                          <td>{s.doctor}</td>
-
-                          {/* Charges */}
-                          <td>{s.charges}</td>
-
-                          {/* Duration */}
-                          <td>{s.duration}</td>
-
-                          {/* Category */}
-                          <td>{s.category}</td>
-
-                          {/* Status */}
+                          <td>{r.clinicName}</td>
+                          <td>{r.doctor}</td>
+                          <td>{r.charges}</td>
+                          <td>{r.duration || "-"}</td>
                           <td>
-                            <div className="d-flex align-items-center gap-1">
-                              <div className="form-check form-switch">
-                                <input
-                                  className="form-check-input"
-                                  type="checkbox"
-                                  checked={!!s.active}
-                                  onChange={() => toggleActive(s._id)}
-                                />
-                              </div>
-                              <span className="status-pill">
-                                {s.active ? "ACTIVE" : "INACTIVE"}
-                              </span>
-                            </div>
+                              <span className="badge bg-light text-dark border fw-normal">{r.category}</span>
                           </td>
-
-                          {/* Action */}
                           <td>
-                            <div style={{ display: "flex", gap: 8 }}>
-                              <button
-                                className="icon-btn bg-white"
-                                title="Edit"
-                                onClick={() => startEdit(s)}
-                              >
-                                <FaEdit />
-                              </button>
-                              <button
-                                className="icon-btn bg-white"
-                                title="Delete"
-                                onClick={() => deleteService(s._id)}
-                              >
-                                <FaTrash style={{ color: "red" }} />
-                              </button>
+                            <StatusToggle active={r.active} onClick={(val) => toggleActive(r, val)} />
+                          </td>
+                          <td className="text-end pe-3">
+                            <div className="d-flex justify-content-end gap-1">
+                               <button className="btn btn-outline-primary btn-sm rounded-1 action-btn" onClick={() => onEdit(r)}><FiEdit2 size={12}/></button>
+                               <button className="btn btn-outline-danger btn-sm rounded-1 action-btn" onClick={() => del(r._id)}><FiTrash2 size={12}/></button>
                             </div>
                           </td>
-
                         </tr>
-                      ))
-                    )}
-                  </tbody>
+                      );
+                    })
+                  )}
+                </tbody>
+              </table>
+            </div>
 
-                </table>
-              </div>
-
-              {/* Footer */}
-              <div className="d-flex justify-content-between mt-3">
-                <div>
-                  Rows per page:
-                  <select className="form-select d-inline-block ms-2" style={{ width: 80 }}>
-                    <option>10</option>
-                    <option>20</option>
-                    <option>50</option>
-                  </select>
-                </div>
-
-                <div>Page <input value={1} readOnly style={{ width: 40, textAlign: "center" }} /> of 1</div>
-              </div>
-
+            {/* Pagination Footer */}
+            <div className="d-flex justify-content-between align-items-center p-3 border-top bg-light text-secondary">
+               <div className="d-flex align-items-center gap-2 small">
+                 <span>Rows per page:</span>
+                 <select className="form-select form-select-sm pagination-select" value={limit} onChange={e=>setLimit(Number(e.target.value))}>
+                   <option value={5}>5</option>
+                   <option value={10}>10</option>
+                   <option value={20}>20</option>
+                 </select>
+               </div>
+               <div className="d-flex align-items-center gap-2 small">
+                 <span>Page</span>
+                 <div className="border bg-white px-2 py-1 rounded">1</div>
+                 <span>of {Math.ceil(total/limit)}</span>
+                 <div className="btn-group">
+                     <button className="btn btn-sm btn-link text-decoration-none text-secondary" disabled={page <= 1} onClick={()=>setPage(p=>p-1)}><FiChevronLeft/> Prev</button>
+                     <button className="btn btn-sm btn-link text-decoration-none text-secondary" disabled={page * limit >= total} onClick={()=>setPage(p=>p+1)}>Next <FiChevronRight/></button>
+                 </div>
+               </div>
             </div>
           </div>
+          
+          <div className="mt-3 text-secondary small">
+              © Western State Pain Institute
+          </div>
+
+          {modalOpen && <ServiceForm initial={editing} onClose={() => setModalOpen(false)} onSave={save} />}
         </div>
       </div>
     </div>
