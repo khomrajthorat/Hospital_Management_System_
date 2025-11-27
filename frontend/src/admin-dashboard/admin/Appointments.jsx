@@ -5,7 +5,7 @@ import Navbar from "../components/Navbar";
 import "bootstrap/dist/css/bootstrap.min.css";
 import { FaDownload } from "react-icons/fa";
 import "../styles/appointments.css";
-import "../styles/services.css";
+import "../styles/admin-shared.css";
 import toast from "react-hot-toast";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import ConfirmationModal from "../../components/ConfirmationModal";
