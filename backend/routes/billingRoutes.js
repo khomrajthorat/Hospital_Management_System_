@@ -25,10 +25,28 @@ router.post("/", async (req, res) => {
   }
 });
 
-// --- GET ALL BILLS ---
+// // --- GET ALL BILLS ---
+// router.get("/", async (req, res) => {
+//   try {
+//     const bills = await BillingModel.find().sort({ createdAt: -1 });
+//     res.json(bills);
+//   } catch (err) {
+//     res.status(500).json({ message: "Error fetching bills", error: err.message });
+//   }
+// });
+
+// --- GET ALL BILLS (Updated with Filter) ---
 router.get("/", async (req, res) => {
   try {
-    const bills = await BillingModel.find().sort({ createdAt: -1 });
+    const { doctorId } = req.query;
+    let query = {};
+
+    // If doctorId is passed, filter by it
+    if (doctorId) {
+      query.doctorId = doctorId;
+    }
+
+    const bills = await BillingModel.find(query).sort({ createdAt: -1 });
     res.json(bills);
   } catch (err) {
     res.status(500).json({ message: "Error fetching bills", error: err.message });

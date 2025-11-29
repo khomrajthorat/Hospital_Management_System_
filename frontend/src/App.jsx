@@ -71,6 +71,9 @@ import DoctorEncounterDetails from "./doctor-dashboard/doctor/DoctorEncounterDet
 import DoctorEncounterTemplateList from "./doctor-dashboard/doctor/DoctorEncounterTemplateList";
 import DoctorEncounterTemplateDetails from "./doctor-dashboard/doctor/DoctorEncounterTemplateDetails";
 import DoctorMedicalReportPage from "./doctor-dashboard/doctor/DoctorMedicalReportPage";
+import DoctorBillingRecords from "./doctor-dashboard/doctor/DoctorBillingRecords.jsx";
+import DoctorEditBill from "./doctor-dashboard/doctor/DoctorEditBill.jsx";
+import DoctorAddBill from "./doctor-dashboard/doctor/DoctorAddBill.jsx";
 
 /* --- NEW SETTINGS IMPORTS --- */
 import SettingLayout from "./doctor-dashboard/doctor/Settings/SettingLayout";
@@ -278,6 +281,16 @@ function App() {
           path="/doctor/patients/view/:patientId"
           element={<DoctorEncounterList />}  // Re-use Encounter List to show history
         />
+        <Route path="/doctor/billing" element={
+          <DoctorBillingRecords sidebarCollapsed={sidebarCollapsed} toggleSidebar={toggleSidebar} />
+        } />
+
+        <Route path="/doctor/add-bill" element={
+          <DoctorAddBill sidebarCollapsed={sidebarCollapsed} toggleSidebar={toggleSidebar} />
+        } />
+        <Route path="/doctor/edit-bill/:id" element={
+          <DoctorEditBill sidebarCollapsed={sidebarCollapsed} toggleSidebar={toggleSidebar} />
+        } />
 
         {/* NEW: Settings Routes (Nested) */}
         <Route path="/doctor/settings" element={<SettingLayout />}>
