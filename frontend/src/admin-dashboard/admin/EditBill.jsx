@@ -261,9 +261,20 @@ const EditBill = () => {
 
             </div>
 
+            {/* ------- UPDATE BUTTON ------- */}
             <button className="btn btn-primary" disabled={saving}>
               {saving ? "Updating..." : "Update Bill"}
             </button>
+
+            {/* ------- CANCEL BUTTON (ADDED) ------- */}
+            <button
+              type="button"
+              className="btn btn-secondary ms-2"
+              onClick={() => navigate("/BillingRecords")}
+            >
+              Cancel
+            </button>
+
           </form>
         </div>
       </div>

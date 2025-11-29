@@ -2,6 +2,12 @@ const mongoose = require("mongoose");
 
 const BillingSchema = new mongoose.Schema(
   {
+    billNumber: {       //updated
+      type: Number,
+      required: true,
+      unique: true
+    },
+    
     // Change required to FALSE
     patientId: { type: String, required: true },
     doctorId: { type: String, required: true },

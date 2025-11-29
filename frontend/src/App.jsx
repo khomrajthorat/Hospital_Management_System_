@@ -72,6 +72,12 @@ import DoctorEncounterTemplateList from "./doctor-dashboard/doctor/DoctorEncount
 import DoctorEncounterTemplateDetails from "./doctor-dashboard/doctor/DoctorEncounterTemplateDetails";
 import DoctorMedicalReportPage from "./doctor-dashboard/doctor/DoctorMedicalReportPage";
 
+/* --- NEW SETTINGS IMPORTS --- */
+import SettingLayout from "./doctor-dashboard/doctor/Settings/SettingLayout";
+import Holidays from "./doctor-dashboard/doctor/Settings/Holidays";
+import DoctorSessions from "./doctor-dashboard/doctor/Settings/DoctorSessions";
+import Listings from "./doctor-dashboard/doctor/Settings/Listings"; 
+import GoogleMeetIntegration from "./doctor-dashboard/doctor/Settings/GoogleMeetIntegration";
 
 // Receptionist
 import AddReceptionist from "./admin-dashboard/admin/AddReceptionist.jsx";
@@ -272,6 +278,16 @@ function App() {
           path="/doctor/patients/view/:patientId"
           element={<DoctorEncounterList />}  // Re-use Encounter List to show history
         />
+
+        {/* NEW: Settings Routes (Nested) */}
+        <Route path="/doctor/settings" element={<SettingLayout />}>
+           <Route index element={<Holidays />} /> {/* Default to Holidays */}
+           <Route path="holidays" element={<Holidays />} />
+           <Route path="sessions" element={<DoctorSessions />} />
+           <Route path="listings" element={<Listings />} />
+           <Route path="integration" element={<GoogleMeetIntegration />} />
+        </Route>
+        
         {/* Patient Section */}
 
         <Route path="/patient" element={

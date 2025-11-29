@@ -345,6 +345,15 @@ const AddBill = () => {
             <button className="btn btn-primary px-4" disabled={saving}>
               {saving ? "Saving..." : "Create Bill"}
             </button>
+
+            {/* ----- CANCEL BUTTON ADDED (from backup) ----- */}
+            <button
+              type="button"
+              className="btn btn-secondary ms-2"
+              onClick={() => navigate("/BillingRecords")}
+            >
+              Cancel
+            </button>
           </form>
         </div>
       </div>

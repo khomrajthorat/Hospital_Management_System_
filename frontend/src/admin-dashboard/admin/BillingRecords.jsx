@@ -109,7 +109,10 @@ const billingStyles = `
   }
 `;
 
-export default function BillingRecords({ sidebarCollapsed = false, toggleSidebar }) {
+export default function BillingRecords({
+  sidebarCollapsed = false,
+  toggleSidebar,
+}) {
   const navigate = useNavigate();
 
   const [bills, setBills] = useState([]);
@@ -144,20 +147,21 @@ export default function BillingRecords({ sidebarCollapsed = false, toggleSidebar
     try {
       setLoading(true);
       setError("");
-      
+
       // Fetch BOTH Bills and Encounters in parallel
       const [billsRes, encRes] = await Promise.all([
-          axios.get(`${BASE}/bills`),
-          axios.get(`${BASE}/encounters`)
+        axios.get(`${BASE}/bills`),
+        axios.get(`${BASE}/encounters`),
       ]);
 
       const allBills = billsRes.data || [];
       // Handle encounter response structure (array vs {encounters: []})
-      const allEncounters = Array.isArray(encRes.data) ? encRes.data : (encRes.data.encounters || []);
+      const allEncounters = Array.isArray(encRes.data)
+        ? encRes.data
+        : encRes.data.encounters || [];
 
       setBills(allBills);
       setEncountersList(allEncounters);
-
     } catch (err) {
       console.error("Error fetching data:", err);
       setError("Failed to load records.");
@@ -177,29 +181,29 @@ export default function BillingRecords({ sidebarCollapsed = false, toggleSidebar
   };
 
   const handleFilterChange = (key, value) => {
-    setFilter(prev => ({ ...prev, [key]: value }));
-    setPage(1); 
+    setFilter((prev) => ({ ...prev, [key]: value }));
+    setPage(1);
   };
 
   // --- LOOKUP FUNCTION (Mongo ID -> ENC-XXXX) ---
   const lookupCustomId = (bill) => {
-      // If the bill already has the short ID stored (new system), use it
-      if (bill.encounterId && bill.encounterId.startsWith("ENC-")) {
-          return bill.encounterId;
-      }
+    // If the bill already has the short ID stored (new system), use it
+    if (bill.encounterId && bill.encounterId.startsWith("ENC-")) {
+      return bill.encounterId;
+    }
 
-      // Otherwise, lookup using the Mongo ID (old system)
-      const mongoId = bill.encounterId || bill.encounter_id || bill.encounter;
-      
-      if (!mongoId) return "-";
+    // Otherwise, lookup using the Mongo ID (old system)
+    const mongoId = bill.encounterId || bill.encounter_id || bill.encounter;
 
-      const found = encountersList.find(e => e._id === mongoId);
-      if (found && found.encounterId) {
-          return found.encounterId; 
-      }
-      
-      // Fallback
-      return typeof mongoId === 'string' ? mongoId.substring(0,8) + "..." : "-";
+    if (!mongoId) return "-";
+
+    const found = encountersList.find((e) => e._id === mongoId);
+    if (found && found.encounterId) {
+      return found.encounterId;
+    }
+
+    // Fallback
+    return typeof mongoId === "string" ? mongoId.substring(0, 8) + "..." : "-";
   };
 
   // Filtering logic
@@ -213,31 +217,66 @@ export default function BillingRecords({ sidebarCollapsed = false, toggleSidebar
 
         // Global Search
         if (q) {
-          const combined =
-            `${bill._id || ""} ${customEncId} ${bill.doctorName || ""} ${bill.clinicName || ""} ${bill.patientName || ""} ${(bill.services || []).join(" ")} ${bill.status || ""}`
-              .toLowerCase();
+          const combined = `${bill._id || ""} ${customEncId} ${
+            bill.doctorName || ""
+          } ${bill.clinicName || ""} ${bill.patientName || ""} ${(
+            bill.services || []
+          ).join(" ")} ${bill.status || ""}`.toLowerCase();
           if (!combined.includes(q)) return false;
         }
 
         // Column Filters
-        if (filter.id && !bill._id?.toLowerCase().includes(filter.id.toLowerCase())) return false;
-        
-        // Filter by Custom ID (ENC-XXXX)
-        if (filter.encounterId && !customEncId.toLowerCase().includes(filter.encounterId.toLowerCase())) return false;
-
-        if (filter.doctor && !bill.doctorName?.toLowerCase().includes(filter.doctor.toLowerCase())) return false;
-        if (filter.clinic && !bill.clinicName?.toLowerCase().includes(filter.clinic.toLowerCase())) return false;
-        if (filter.patient && !bill.patientName?.toLowerCase().includes(filter.patient.toLowerCase())) return false;
-        if (filter.service && !(Array.isArray(bill.services) ? bill.services.join(" ") : "")
-          .toLowerCase()
-          .includes(filter.service.toLowerCase()))
+        if (
+          filter.id &&
+          !bill._id?.toLowerCase().includes(filter.id.toLowerCase())
+        )
           return false;
-        
-        if (filter.total && bill.totalAmount?.toString() !== filter.total) return false;
-        if (filter.discount && bill.discount?.toString() !== filter.discount) return false;
-        if (filter.due && bill.amountDue?.toString() !== filter.due) return false;
 
-        if (filter.status && filter.status !== "Filter" && bill.status?.toLowerCase() !== filter.status.toLowerCase()) return false;
+        // Filter by Custom ID (ENC-XXXX)
+        if (
+          filter.encounterId &&
+          !customEncId.toLowerCase().includes(filter.encounterId.toLowerCase())
+        )
+          return false;
+
+        if (
+          filter.doctor &&
+          !bill.doctorName?.toLowerCase().includes(filter.doctor.toLowerCase())
+        )
+          return false;
+        if (
+          filter.clinic &&
+          !bill.clinicName?.toLowerCase().includes(filter.clinic.toLowerCase())
+        )
+          return false;
+        if (
+          filter.patient &&
+          !bill.patientName
+            ?.toLowerCase()
+            .includes(filter.patient.toLowerCase())
+        )
+          return false;
+        if (
+          filter.service &&
+          !(Array.isArray(bill.services) ? bill.services.join(" ") : "")
+            .toLowerCase()
+            .includes(filter.service.toLowerCase())
+        )
+          return false;
+
+        if (filter.total && bill.totalAmount?.toString() !== filter.total)
+          return false;
+        if (filter.discount && bill.discount?.toString() !== filter.discount)
+          return false;
+        if (filter.due && bill.amountDue?.toString() !== filter.due)
+          return false;
+
+        if (
+          filter.status &&
+          filter.status !== "Filter" &&
+          bill.status?.toLowerCase() !== filter.status.toLowerCase()
+        )
+          return false;
 
         return true;
       })
@@ -245,7 +284,10 @@ export default function BillingRecords({ sidebarCollapsed = false, toggleSidebar
   }, [bills, encountersList, searchTerm, filter]);
 
   const totalPages = Math.max(1, Math.ceil(filtered.length / rowsPerPage));
-  const pageItems = filtered.slice((page - 1) * rowsPerPage, page * rowsPerPage);
+  const pageItems = filtered.slice(
+    (page - 1) * rowsPerPage,
+    page * rowsPerPage
+  );
 
   const getStatusBadgeClass = (status) => {
     const s = (status || "").toLowerCase();
@@ -257,7 +299,7 @@ export default function BillingRecords({ sidebarCollapsed = false, toggleSidebar
   return (
     <div className="d-flex billing-scope">
       <style>{billingStyles}</style>
-      
+
       <Sidebar collapsed={sidebarCollapsed} />
 
       <div
@@ -269,19 +311,18 @@ export default function BillingRecords({ sidebarCollapsed = false, toggleSidebar
         <Navbar toggleSidebar={toggleSidebar} />
 
         <div className="page-title-bar d-flex justify-content-between align-items-center">
-           <h5 className="page-title">Billing Records</h5>
-           <div className="services-actions">
-              <button
-                className="btn btn-light btn-sm border"
-                onClick={() => navigate("/AddBill")}
-              >
-                <FaPlus className="me-1" /> Add Bill
-              </button>
-            </div>
+          <h5 className="page-title">Billing Records</h5>
+          <div className="services-actions">
+            <button
+              className="btn btn-light btn-sm border"
+              onClick={() => navigate("/AddBill")}
+            >
+              <FaPlus className="me-1" /> Add Bill
+            </button>
+          </div>
         </div>
 
         <div className="table-card">
-          
           <div className="search-container">
             <div className="input-group">
               <span className="input-group-text bg-white border-end-0">
@@ -301,40 +342,146 @@ export default function BillingRecords({ sidebarCollapsed = false, toggleSidebar
             <table className="custom-table table-hover">
               <thead>
                 <tr>
-                  <th style={{ width: '50px' }}>ID <FaSort size={10} className="text-muted"/></th>
-                  <th>Encounter ID <FaSort size={10} className="text-muted"/></th>
-                  <th>Doctor Name <FaSort size={10} className="text-muted"/></th>
-                  <th>Clinic Name <FaSort size={10} className="text-muted"/></th>
-                  <th>Patient Name <FaSort size={10} className="text-muted"/></th>
+                  <th style={{ width: "50px" }}>
+                    ID <FaSort size={10} className="text-muted" />
+                  </th>
+                  <th>
+                    Encounter ID <FaSort size={10} className="text-muted" />
+                  </th>
+                  <th>
+                    Doctor Name <FaSort size={10} className="text-muted" />
+                  </th>
+                  <th>
+                    Clinic Name <FaSort size={10} className="text-muted" />
+                  </th>
+                  <th>
+                    Patient Name <FaSort size={10} className="text-muted" />
+                  </th>
                   <th>Services</th>
-                  <th style={{ width: '80px' }}>Total <FaSort size={10} className="text-muted"/></th>
-                  <th style={{ width: '80px' }}>Discount <FaSort size={10} className="text-muted"/></th>
-                  <th style={{ width: '90px' }}>Amount due <FaSort size={10} className="text-muted"/></th>
-                  <th style={{ width: '120px' }}>Date <FaSort size={10} className="text-muted"/></th>
-                  <th style={{ width: '80px' }}>Status <FaSort size={10} className="text-muted"/></th>
-                  <th style={{ width: '100px' }}>Action</th>
+                  <th style={{ width: "80px" }}>
+                    Total <FaSort size={10} className="text-muted" />
+                  </th>
+                  <th style={{ width: "80px" }}>
+                    Discount <FaSort size={10} className="text-muted" />
+                  </th>
+                  <th style={{ width: "90px" }}>
+                    Amount due <FaSort size={10} className="text-muted" />
+                  </th>
+                  <th style={{ width: "120px" }}>
+                    Date <FaSort size={10} className="text-muted" />
+                  </th>
+                  <th style={{ width: "80px" }}>
+                    Status <FaSort size={10} className="text-muted" />
+                  </th>
+                  <th style={{ width: "100px" }}>Action</th>
                 </tr>
 
                 <tr className="filter-row">
-                  <td><input className="filter-input" placeholder="ID" onChange={e => handleFilterChange('id', e.target.value)} /></td>
-                  <td><input className="filter-input" placeholder="Enc ID" onChange={e => handleFilterChange('encounterId', e.target.value)} /></td>
-                  <td><input className="filter-input" placeholder="Doctor" onChange={e => handleFilterChange('doctor', e.target.value)} /></td>
-                  <td><input className="filter-input" placeholder="Clinic" onChange={e => handleFilterChange('clinic', e.target.value)} /></td>
-                  <td><input className="filter-input" placeholder="Patient" onChange={e => handleFilterChange('patient', e.target.value)} /></td>
-                  <td><input className="filter-input" placeholder="Service" onChange={e => handleFilterChange('service', e.target.value)} /></td>
-                  <td><input className="filter-input" placeholder="Total" onChange={e => handleFilterChange('total', e.target.value)} /></td>
-                  <td><input className="filter-input" placeholder="Disc" onChange={e => handleFilterChange('discount', e.target.value)} /></td>
-                  <td><input className="filter-input" placeholder="Due" onChange={e => handleFilterChange('due', e.target.value)} /></td>
                   <td>
-                     <div className="d-flex bg-white border rounded">
-                       <input type="text" className="form-control border-0 p-1 py-0 shadow-none" style={{fontSize:'0.7rem', height: 24}} placeholder="Date" onFocus={e=>e.target.type='date'} onBlur={e=>e.target.type='text'} onChange={e => handleFilterChange('date', e.target.value)} />
-                     </div>
+                    <input
+                      className="filter-input"
+                      placeholder="ID"
+                      onChange={(e) => handleFilterChange("id", e.target.value)}
+                    />
                   </td>
                   <td>
-                    <select className="form-select border-secondary shadow-none p-0 ps-1" style={{fontSize:'0.7rem', height: 26}} onChange={e => handleFilterChange('status', e.target.value)}>
-                       <option>Filter</option>
-                       <option value="paid">Paid</option>
-                       <option value="unpaid">Unpaid</option>
+                    <input
+                      className="filter-input"
+                      placeholder="Enc ID"
+                      onChange={(e) =>
+                        handleFilterChange("encounterId", e.target.value)
+                      }
+                    />
+                  </td>
+                  <td>
+                    <input
+                      className="filter-input"
+                      placeholder="Doctor"
+                      onChange={(e) =>
+                        handleFilterChange("doctor", e.target.value)
+                      }
+                    />
+                  </td>
+                  <td>
+                    <input
+                      className="filter-input"
+                      placeholder="Clinic"
+                      onChange={(e) =>
+                        handleFilterChange("clinic", e.target.value)
+                      }
+                    />
+                  </td>
+                  <td>
+                    <input
+                      className="filter-input"
+                      placeholder="Patient"
+                      onChange={(e) =>
+                        handleFilterChange("patient", e.target.value)
+                      }
+                    />
+                  </td>
+                  <td>
+                    <input
+                      className="filter-input"
+                      placeholder="Service"
+                      onChange={(e) =>
+                        handleFilterChange("service", e.target.value)
+                      }
+                    />
+                  </td>
+                  <td>
+                    <input
+                      className="filter-input"
+                      placeholder="Total"
+                      onChange={(e) =>
+                        handleFilterChange("total", e.target.value)
+                      }
+                    />
+                  </td>
+                  <td>
+                    <input
+                      className="filter-input"
+                      placeholder="Disc"
+                      onChange={(e) =>
+                        handleFilterChange("discount", e.target.value)
+                      }
+                    />
+                  </td>
+                  <td>
+                    <input
+                      className="filter-input"
+                      placeholder="Due"
+                      onChange={(e) =>
+                        handleFilterChange("due", e.target.value)
+                      }
+                    />
+                  </td>
+                  <td>
+                    <div className="d-flex bg-white border rounded">
+                      <input
+                        type="text"
+                        className="form-control border-0 p-1 py-0 shadow-none"
+                        style={{ fontSize: "0.7rem", height: 24 }}
+                        placeholder="Date"
+                        onFocus={(e) => (e.target.type = "date")}
+                        onBlur={(e) => (e.target.type = "text")}
+                        onChange={(e) =>
+                          handleFilterChange("date", e.target.value)
+                        }
+                      />
+                    </div>
+                  </td>
+                  <td>
+                    <select
+                      className="form-select border-secondary shadow-none p-0 ps-1"
+                      style={{ fontSize: "0.7rem", height: 26 }}
+                      onChange={(e) =>
+                        handleFilterChange("status", e.target.value)
+                      }
+                    >
+                      <option>Filter</option>
+                      <option value="paid">Paid</option>
+                      <option value="unpaid">Unpaid</option>
                     </select>
                   </td>
                   <td></td>
@@ -343,12 +490,24 @@ export default function BillingRecords({ sidebarCollapsed = false, toggleSidebar
 
               <tbody>
                 {loading ? (
-                  <tr><td colSpan="12" className="text-center py-5 text-muted">Loading bills...</td></tr>
+                  <tr>
+                    <td colSpan="12" className="text-center py-5 text-muted">
+                      Loading bills...
+                    </td>
+                  </tr>
                 ) : error ? (
-                  <tr><td colSpan="12" className="text-center py-5 text-danger">{error}</td></tr>
+                  <tr>
+                    <td colSpan="12" className="text-center py-5 text-danger">
+                      {error}
+                    </td>
+                  </tr>
                 ) : pageItems.length === 0 ? (
                   <tr>
-                    <td colSpan="12" className="text-center py-5" style={{ color: '#3b82f6', fontWeight: 500 }}>
+                    <td
+                      colSpan="12"
+                      className="text-center py-5"
+                      style={{ color: "#3b82f6", fontWeight: 500 }}
+                    >
                       No Data Found
                     </td>
                   </tr>
@@ -357,12 +516,12 @@ export default function BillingRecords({ sidebarCollapsed = false, toggleSidebar
                     <tr key={bill._id || i}>
                       {/* 1. ID Column: Database _id */}
                       <td>{bill._id ? bill._id.substring(0, 6) : "-"}</td>
-                      
+
                       {/* 2. Encounter ID Column: Custom ID lookup */}
                       <td>
-                          <span className="enc-id-text">
-                             {lookupCustomId(bill)}
-                          </span>
+                        <span className="enc-id-text">
+                          {lookupCustomId(bill)}
+                        </span>
                       </td>
 
                       <td>{bill.doctorName}</td>
@@ -372,7 +531,11 @@ export default function BillingRecords({ sidebarCollapsed = false, toggleSidebar
                       <td>{bill.totalAmount}</td>
                       <td>{bill.discount}</td>
                       <td>{bill.amountDue}</td>
-                      <td>{bill.date ? new Date(bill.date).toLocaleDateString() : "-"}</td>
+                      <td>
+                        {bill.date
+                          ? new Date(bill.date).toLocaleDateString()
+                          : "-"}
+                      </td>
                       <td>
                         <span className={getStatusBadgeClass(bill.status)}>
                           {bill.status}
@@ -394,6 +557,15 @@ export default function BillingRecords({ sidebarCollapsed = false, toggleSidebar
                           >
                             <FaTrash size={14} />
                           </button>
+                          <button
+                            className="btn btn-sm text-success p-0"
+                            onClick={() =>
+                              window.open(`${BASE}/bills/${bill._id}/pdf`)
+                            }
+                            title="Download PDF"
+                          >
+                            PDF
+                          </button>
                         </div>
                       </td>
                     </tr>
@@ -404,49 +576,54 @@ export default function BillingRecords({ sidebarCollapsed = false, toggleSidebar
           </div>
 
           <div className="pagination-bar">
-             <div className="d-flex align-items-center gap-2">
-                <span className="text-muted">Rows per page:</span>
-                <select 
-                  className="form-select form-select-sm border-secondary shadow-none" 
-                  style={{width: 60}} 
-                  value={rowsPerPage} 
-                  onChange={(e) => { setRowsPerPage(Number(e.target.value)); setPage(1); }}
-                >
-                   <option value={10}>10</option>
-                   <option value={20}>20</option>
-                   <option value={50}>50</option>
-                </select>
-             </div>
-             
-             <div className="d-flex align-items-center gap-3">
-                <span className="text-muted">
-                   Page <span className="border px-2 py-1 rounded bg-white text-dark fw-bold">{page}</span> of {totalPages}
-                </span>
-                <div className="btn-group">
-                   <button 
-                     className="btn btn-sm btn-link text-secondary text-decoration-none" 
-                     disabled={page <= 1} 
-                     onClick={() => setPage(p => p - 1)}
-                   >
-                     Prev
-                   </button>
-                   <button 
-                     className="btn btn-sm btn-link text-secondary text-decoration-none" 
-                     disabled={page >= totalPages} 
-                     onClick={() => setPage(p => p + 1)}
-                   >
-                     Next
-                   </button>
-                </div>
-             </div>
-          </div>
+            <div className="d-flex align-items-center gap-2">
+              <span className="text-muted">Rows per page:</span>
+              <select
+                className="form-select form-select-sm border-secondary shadow-none"
+                style={{ width: 60 }}
+                value={rowsPerPage}
+                onChange={(e) => {
+                  setRowsPerPage(Number(e.target.value));
+                  setPage(1);
+                }}
+              >
+                <option value={10}>10</option>
+                <option value={20}>20</option>
+                <option value={50}>50</option>
+              </select>
+            </div>
 
+            <div className="d-flex align-items-center gap-3">
+              <span className="text-muted">
+                Page{" "}
+                <span className="border px-2 py-1 rounded bg-white text-dark fw-bold">
+                  {page}
+                </span>{" "}
+                of {totalPages}
+              </span>
+              <div className="btn-group">
+                <button
+                  className="btn btn-sm btn-link text-secondary text-decoration-none"
+                  disabled={page <= 1}
+                  onClick={() => setPage((p) => p - 1)}
+                >
+                  Prev
+                </button>
+                <button
+                  className="btn btn-sm btn-link text-secondary text-decoration-none"
+                  disabled={page >= totalPages}
+                  onClick={() => setPage((p) => p + 1)}
+                >
+                  Next
+                </button>
+              </div>
+            </div>
+          </div>
         </div>
 
         <div className="px-4 py-3 text-primary fw-bold small">
-           © Western State Pain Institute
+          © Western State Pain Institute
         </div>
-
       </div>
     </div>
   );
