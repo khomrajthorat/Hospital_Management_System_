@@ -458,8 +458,8 @@ router.get("/:id/pdf", async (req, res) => {
     detailsY -= 12;
     page.drawText(`Email: ${clinicEmail}`, { x: textStartX, y: detailsY, size: 10, font: fontRegular, color: gray });
 
-    cursorY -= 60;
-    page.drawRectangle({ x: 0, y: cursorY - 20 , width: width, height: 30, color: primaryColor });
+    cursorY -= 80;
+    page.drawRectangle({ x: 0, y: cursorY - 10 , width: width, height: 30, color: primaryColor });
     const titleText = "APPOINTMENT CONFIRMATION";
     const titleWidth = fontBold.widthOfTextAtSize(titleText, 14);
     page.drawText(titleText, { x: (width - titleWidth) / 2, y: cursorY, size: 14, font: fontBold, color: rgb(1,1,1) });
