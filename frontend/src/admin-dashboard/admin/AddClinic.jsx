@@ -222,7 +222,7 @@ export default function AddClinic() {
           <h4 className="fw-bold text-primary">{isEditing ? "Edit Clinic" : "Add Clinic"}</h4>
           <button
             className="btn btn-primary d-flex align-items-center gap-2"
-            onClick={() => navigate("/clinics")}
+            onClick={() => navigate("/clinic-list")}
           >
             <FaArrowLeft />
             Back
