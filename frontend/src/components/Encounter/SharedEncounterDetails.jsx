@@ -6,6 +6,7 @@ import toast from "react-hot-toast";
 import { read, utils } from 'xlsx';
 import "../../admin-dashboard/styles/admin-shared.css";
 import API_BASE from "../../config";
+import MedicalReport from "./MedicalReport";
 
 export default function SharedEncounterDetails() {
   const { id } = useParams();
@@ -1041,6 +1042,11 @@ export default function SharedEncounterDetails() {
             </table>
           </div>
        </div>
+
+      {/* Medical Report Section */}
+      <div className="bg-white shadow-sm rounded p-3 mt-3 mb-4">
+          <MedicalReport isEmbedded={true} />
+      </div>
 
       {/* Add/Edit Prescription Modal */}
       {isPrescriptionModalOpen && (

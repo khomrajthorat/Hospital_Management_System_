@@ -6,7 +6,7 @@ import toast from "react-hot-toast";
 import "../../admin-dashboard/styles/admin-shared.css";
 import API_BASE from "../../config";
 
-export default function MedicalReport() {
+export default function MedicalReport({ isEmbedded = false }) {
   const { id } = useParams();
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
@@ -172,31 +172,52 @@ export default function MedicalReport() {
   if (loading) return <div className="p-5 text-center">Loading...</div>;
 
   return (
-    <div className="container-fluid mt-3">
-       <div className="services-topbar services-card d-flex justify-content-between align-items-center mb-3">
-         <h5 className="fw-bold text-white mb-0">Medical Report</h5>
-         <div className="d-flex gap-2">
+    <div className={isEmbedded ? "mt-3" : "container-fluid mt-3"}>
+       {!isEmbedded && (
+         <div className="services-topbar services-card d-flex justify-content-between align-items-center mb-3">
+           <h5 className="fw-bold text-white mb-0">Medical Report</h5>
+           <div className="d-flex gap-2">
+               {!isReportFormOpen && id ? (
+                  <button 
+                    className="btn btn-light btn-sm d-flex align-items-center gap-1 text-primary"
+                    onClick={() => {
+                      setEditingReportId(null);
+                      setCurrentEncounterId(id); // Only allow adding if we have a global ID (single encounter mode)
+                      setReportData({ name: "", date: new Date().toISOString().split('T')[0], file: null });
+                      setIsReportFormOpen(true);
+                    }}
+                  >
+                    <FaPlus /> Add Medical Report
+                  </button>
+               ) : null }
+                <button 
+                  className="btn btn-light btn-sm d-flex align-items-center gap-1 text-dark"
+                  onClick={() => navigate(-1)}
+                >
+                  Back
+                </button>
+           </div>
+         </div>
+       )}
+
+       {isEmbedded && (
+          <div className="d-flex justify-content-between align-items-center mb-3">
+             <h6 className="fw-bold text-muted mb-0">Medical Reports</h6>
              {!isReportFormOpen && id ? (
                 <button 
-                  className="btn btn-light btn-sm d-flex align-items-center gap-1 text-primary"
+                  className="btn btn-primary btn-sm d-flex align-items-center gap-1"
                   onClick={() => {
                     setEditingReportId(null);
-                    setCurrentEncounterId(id); // Only allow adding if we have a global ID (single encounter mode)
+                    setCurrentEncounterId(id);
                     setReportData({ name: "", date: new Date().toISOString().split('T')[0], file: null });
                     setIsReportFormOpen(true);
                   }}
                 >
-                  <FaPlus /> Add Medical Report
+                  <FaPlus /> Add Report
                 </button>
-             ) : null }
-              <button 
-                className="btn btn-light btn-sm d-flex align-items-center gap-1 text-dark"
-                onClick={() => navigate(-1)}
-              >
-                Back
-              </button>
-         </div>
-       </div>
+             ) : null}
+          </div>
+       )}
 
        <div className="bg-white shadow-sm rounded p-3">
          {isReportFormOpen && (
