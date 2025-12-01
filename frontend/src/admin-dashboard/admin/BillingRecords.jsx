@@ -454,7 +454,7 @@ export default function BillingRecords({ sidebarCollapsed = false, toggleSidebar
           </div>
 
         </div>
-        <div className="px-4 text-muted small">© Western State Pain Institute</div>
+        <div className="px-4 text-muted small">© OneCare</div>
       </div>
 
       {/* --- CUSTOM DELETE MODAL --- */}
