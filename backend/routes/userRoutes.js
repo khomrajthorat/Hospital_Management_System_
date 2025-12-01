@@ -18,6 +18,17 @@ router.get("/api/user/email/:email", async (req, res) => {
 // 2) by id
 router.get("/api/user/:id", async (req, res) => {
   try {
+    // Handle static admin ID
+    if (req.params.id === "admin-id") {
+      return res.json({
+        id: "admin-id",
+        name: "System Admin",
+        email: "admin@onecare.com",
+        role: "admin",
+        profileCompleted: true,
+      });
+    }
+
     const user = await User.findById(req.params.id).select("-password");
     if (!user) return res.status(404).json({ message: "User not found" });
     res.json(user);

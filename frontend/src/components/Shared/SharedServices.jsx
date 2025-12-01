@@ -12,8 +12,10 @@ import { FaSort } from "react-icons/fa";
 import axios from "axios";
 import toast, { Toaster } from "react-hot-toast";
 
+import API_BASE from "../../config";
+
 /* ---------- Local axios instance ---------- */
-const api = axios.create({ baseURL: "http://127.0.0.1:3001" });
+const api = axios.create({ baseURL: API_BASE });
 const SERVICES_BASE = "/services";
 
 /* ---------- EMBEDDED CSS STYLES (SCOPED) ---------- */
