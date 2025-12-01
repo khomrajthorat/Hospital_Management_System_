@@ -923,35 +923,46 @@ router.get("/monthly", async (req, res) => {
   try {
     const stats = [];
     const today = new Date();
+    const currentYear = today.getFullYear();
+    const currentMonth = today.getMonth(); // 0 = Jan, 11 = Dec
     
-    // Loop back 4 weeks
-    // i=3 is the oldest week, i=0 is the current week
-    for (let i = 3; i >= 0; i--) {
-        const start = new Date(today);
-        start.setDate(today.getDate() - (i * 7) - 6);
-        start.setHours(0,0,0,0);
-
-        const end = new Date(start);
-        end.setDate(start.getDate() + 7);
-        end.setHours(23,59,59,999);
+    // We want 4 buckets: Week 1, Week 2, Week 3, Week 4
+    for (let i = 0; i < 4; i++) {
         
-        // Count documents (Works for both String and Date formats)
+        // Calculate Start Date of the week
+        // i=0 -> Day 1, i=1 -> Day 8, etc.
+        const start = new Date(currentYear, currentMonth, (i * 7) + 1);
+        start.setHours(0, 0, 0, 0);
+
+        // Calculate End Date of the week
+        let end;
+        if (i === 3) {
+            // If it is "Week 4", extend it to the very last day of the month
+            // (This covers days 22 to 30/31)
+            end = new Date(currentYear, currentMonth + 1, 0); 
+            end.setHours(23, 59, 59, 999);
+        } else {
+            // Otherwise, just add 6 days (to make a 7-day week)
+            end = new Date(currentYear, currentMonth, (i * 7) + 7);
+            end.setHours(23, 59, 59, 999);
+        }
+
+        // Count appointments using the robust $expr check (handles Strings & Dates)
         const count = await AppointmentModel.countDocuments({ 
             $expr: {
               $and: [
                 { $gte: [{ $toDate: "$date" }, start] },
-                { $lt:  [{ $toDate: "$date" }, end] }
+                { $lte: [{ $toDate: "$date" }, end] }
               ]
             }
         });
         
-        // Label them Week 1 to Week 4
-        // When i=3 (oldest), label is "Week 1"
-        // When i=0 (current), label is "Week 4"
-        stats.push({ label: `Week ${4-i}`, count });
+        stats.push({ label: `Week ${i + 1}`, count });
     }
+    
     res.json(stats);
   } catch (err) {
+    console.error("Monthly stats error:", err);
     res.status(500).json({ message: "Server error", error: err.message });
   }
 });
