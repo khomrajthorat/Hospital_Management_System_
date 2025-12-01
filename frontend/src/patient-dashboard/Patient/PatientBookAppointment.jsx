@@ -2,9 +2,7 @@ import React, { useEffect, useState } from "react";
 import axios from "axios";
 import PatientLayout from "../layouts/PatientLayout";
 import { useNavigate, useLocation } from "react-router-dom";
-
-// Use 127.0.0.1 to prevent connection refused errors
-const API_BASE = "http://127.0.0.1:3001";
+import API_BASE from "../../config.js";
 
 export default function PatientBookAppointment() {
   const navigate = useNavigate();

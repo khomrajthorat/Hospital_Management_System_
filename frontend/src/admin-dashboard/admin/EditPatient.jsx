@@ -1,13 +1,12 @@
 import React, { useState, useEffect } from "react";
 import { useNavigate, useParams } from "react-router-dom";
+  
 import "bootstrap/dist/css/bootstrap.min.css";
 import AdminLayout from "../layouts/AdminLayout";
 import { FaArrowLeft, FaSave } from "react-icons/fa";
 import axios from "axios";
 import { toast } from "react-hot-toast";
-
-// ✅ 1. Use the exact same Base URL as your working code
-const API_BASE = "http://127.0.0.1:3001";
+import API_BASE from "../../config.js";
 
 const EditPatient = () => {
   const navigate = useNavigate();
