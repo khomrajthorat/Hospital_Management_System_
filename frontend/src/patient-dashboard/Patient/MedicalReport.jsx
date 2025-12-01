@@ -2,9 +2,9 @@ import React, { useEffect, useState } from "react";
 import axios from "axios";
 import { FaFilePdf, FaEye } from "react-icons/fa"; 
 import PatientLayout from "../layouts/PatientLayout"; 
+import API_BASE from "../../config";
 
-const api = axios.create({ baseURL: "http://127.0.0.1:3001" });
-
+const BASE = API_BASE;
 api.interceptors.request.use((config) => {
   const token = localStorage.getItem("token");
   if (token) config.headers.Authorization = `Bearer ${token}`;
@@ -109,7 +109,7 @@ export default function MedicalReport({ sidebarCollapsed, toggleSidebar }) {
                    {/* 2. Report Name & Link */}
                    <div style={{ flex: 1 }}>
                      <a 
-                        href={`http://127.0.0.1:3001${r.file}`} 
+                        href={`${API_BASE}${r.file}`} 
                         target="_blank" 
                         rel="noopener noreferrer"
                         className="report-link"
