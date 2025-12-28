@@ -1,4 +1,8 @@
-/* --- VARIABLES & RESET --- */
+/* ==============================================
+   OneCare Auth - Modern Login/Signup Styles
+   ============================================== */
+
+/* --- CSS VARIABLES --- */
 :root {
     --primary: #4e54c8;
     --secondary: #8f94fb;
@@ -7,15 +11,18 @@
     --text-light: #fff;
     --bg-gradient: linear-gradient(135deg, #4e54c8, #8f94fb);
     --input-bg: #f4f8f7;
+    --error-color: #e74c3c;
     --transition-speed: 0.3s;
 }
 
+/* --- SCOPED RESET --- */
 .onecare-auth-page * {
     box-sizing: border-box;
     margin: 0;
     padding: 0;
 }
 
+/* --- PAGE CONTAINER --- */
 .onecare-auth-page {
     background: #f0f2f5;
     display: flex;
@@ -87,7 +94,7 @@
     }
 }
 
-/* --- LOADING COMPONENT --- */
+/* --- LOADING OVERLAY --- */
 .loading-overlay {
     position: fixed;
     top: 0;
@@ -144,7 +151,7 @@
     text-transform: uppercase;
 }
 
-/* --- AUTH CONTAINER MAIN --- */
+/* --- AUTH WRAPPER (Main Container) --- */
 .auth-wrapper {
     background-color: #fff;
     border-radius: 30px;
@@ -158,6 +165,7 @@
     border: 1px solid rgba(255, 255, 255, 0.5);
 }
 
+/* --- FORM BOXES --- */
 .auth-form-box {
     position: absolute;
     top: 0;
@@ -183,7 +191,7 @@
     pointer-events: none;
 }
 
-/* Panel Active State (Switching) */
+/* Panel Active States */
 .auth-wrapper.panel-active .login-form-box {
     transform: translateX(100%);
     opacity: 0;
@@ -213,6 +221,7 @@
     }
 }
 
+/* --- FORM STYLES --- */
 .onecare-auth-page form {
     background-color: #FFFFFF;
     display: flex;
@@ -229,11 +238,18 @@
     font-weight: 700;
     margin: 0;
     color: var(--primary);
+    font-size: 26px;
+}
+
+.onecare-auth-page form>span {
+    font-size: 11px;
+    color: #888;
+    margin-bottom: 6px;
 }
 
 /* --- SOCIAL LINKS --- */
 .social-links {
-    margin: 15px 0;
+    margin: 8px 0;
 }
 
 .social-links a {
@@ -242,12 +258,13 @@
     display: inline-flex;
     justify-content: center;
     align-items: center;
-    margin: 0 5px;
-    height: 40px;
-    width: 40px;
+    margin: 0 4px;
+    height: 35px;
+    width: 35px;
     color: var(--text-dark);
     text-decoration: none;
     transition: var(--transition-speed);
+    font-size: 14px;
 }
 
 .social-links a:hover {
@@ -257,32 +274,36 @@
     box-shadow: 0 5px 15px rgba(78, 84, 200, 0.3);
 }
 
-/* --- INPUTS (OPTIMIZED FOCUS) --- */
+/* --- INPUT GROUPS --- */
 .input-group {
     position: relative;
     width: 100%;
-    margin: 8px 0;
+    margin: 5px 0;
 }
 
 .input-group input {
     background-color: var(--input-bg);
     border: 2px solid transparent;
-    padding: 12px 15px 12px 45px;
+    padding: 10px 15px 10px 40px;
     width: 100%;
     border-radius: 8px;
     outline: none;
-    font-size: 14px;
+    font-size: 13px;
     transition: all 0.3s ease;
     font-family: 'Poppins', sans-serif;
+    height: 40px;
 }
 
+/* Icon uses fixed top position so it doesn't move with error text */
 .input-icon {
     position: absolute;
-    left: 15px;
-    top: 50%;
+    left: 14px;
+    top: 20px;
+    /* Fixed: half of 40px input height */
     transform: translateY(-50%);
     color: #aaa;
     transition: var(--transition-speed);
+    font-size: 14px;
 }
 
 .input-group input:focus {
@@ -295,7 +316,27 @@
     color: var(--primary);
 }
 
-/* --- EXTRA LINKS --- */
+/* Error States */
+.input-group.has-error input {
+    border-color: var(--error-color);
+    background-color: #fef5f5;
+}
+
+.input-group.has-error .input-icon {
+    color: var(--error-color);
+}
+
+.error-text {
+    display: block;
+    color: var(--error-color);
+    font-size: 10px;
+    text-align: left;
+    margin-top: 2px;
+    padding-left: 5px;
+    line-height: 1.2;
+}
+
+/* --- FORGOT PASSWORD --- */
 .forgot-pass-box {
     width: 100%;
     text-align: right;
@@ -319,14 +360,14 @@
 /* --- ROLE SELECTOR --- */
 .role-group {
     width: 100%;
-    margin: 10px 0;
+    margin: 6px 0;
 }
 
 .role-label {
     display: block;
-    font-size: 13px;
+    font-size: 12px;
     color: #666;
-    margin-bottom: 8px;
+    margin-bottom: 5px;
 }
 
 .role-options {
@@ -344,20 +385,20 @@
 }
 
 .role-card {
-    padding: 10px 15px;
+    padding: 8px 12px;
     border: 1px solid #eee;
-    border-radius: 12px;
+    border-radius: 10px;
     display: flex;
     flex-direction: column;
     align-items: center;
-    min-width: 80px;
+    min-width: 70px;
     transition: var(--transition-speed);
     background: #fafafa;
 }
 
 .role-card i {
-    font-size: 18px;
-    margin-bottom: 5px;
+    font-size: 16px;
+    margin-bottom: 3px;
     color: #aaa;
 }
 
@@ -379,7 +420,21 @@
     color: var(--primary);
 }
 
-/* --- OVERLAY SLIDER --- */
+/* Role Extra Fields (Hospital ID) */
+.role-extra {
+    width: 100%;
+    max-height: 0;
+    overflow: hidden;
+    transition: max-height 0.3s ease, opacity 0.3s ease;
+    opacity: 0;
+}
+
+.role-extra.show {
+    max-height: 100px;
+    opacity: 1;
+}
+
+/* --- SLIDING PANEL --- */
 .slide-panel-wrapper {
     position: absolute;
     top: 0;
@@ -485,11 +540,20 @@
     cursor: pointer;
     box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
     margin-top: 10px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
 }
 
-.onecare-auth-page button:hover {
+.onecare-auth-page button:hover:not(:disabled) {
     background: var(--secondary);
     transform: scale(1.05);
+}
+
+.onecare-auth-page button:disabled {
+    opacity: 0.7;
+    cursor: not-allowed;
 }
 
 .onecare-auth-page button.transparent-btn {
@@ -502,10 +566,23 @@
     background: rgba(255, 255, 255, 0.2);
 }
 
-/* --- UTILITY ANIMATIONS --- */
-/* FIXED: Changed from opacity: 0 to opacity: 1 and animation runs immediately */
+/* Spinner icon animation */
+.onecare-auth-page button .fa-spinner {
+    animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+    from {
+        transform: rotate(0deg);
+    }
+
+    to {
+        transform: rotate(360deg);
+    }
+}
+
+/* --- ENTRANCE ANIMATIONS --- */
 .animate-enter {
-    opacity: 1;
     animation: slideUpFade 0.5s ease forwards;
     animation-delay: calc(0.1s * var(--i));
 }
@@ -522,18 +599,7 @@
     }
 }
 
-.role-extra {
-    width: 100%;
-    max-height: 0;
-    overflow: hidden;
-    transition: max-height 0.3s ease;
-}
-
-.role-extra.show {
-    max-height: 200px;
-}
-
-/* --- RESPONSIVE --- */
+/* --- MOBILE RESPONSIVE --- */
 .mobile-switch {
     display: none;
     margin-top: 20px;
@@ -546,11 +612,16 @@
 }
 
 .mobile-switch button {
-    background: transparent !important;
-    color: var(--primary) !important;
-    border: 1px solid var(--primary) !important;
-    padding: 8px 25px !important;
-    box-shadow: none !important;
+    background: transparent;
+    color: var(--primary);
+    border: 1px solid var(--primary);
+    padding: 8px 25px;
+    box-shadow: none;
+}
+
+.mobile-switch button:hover {
+    background: rgba(78, 84, 200, 0.1);
+    transform: none;
 }
 
 @media (max-width: 768px) {
@@ -603,11 +674,4 @@
         min-width: 70px;
         padding: 8px 12px;
     }
-}
-
-/* --- FORM SPAN TEXT --- */
-.onecare-auth-page form>span {
-    font-size: 12px;
-    color: #888;
-    margin-bottom: 10px;
 }

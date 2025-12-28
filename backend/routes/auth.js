@@ -380,7 +380,6 @@ router.post("/change-password", async (req, res) => {
       await user.save();
 
       return res.json({ message: "Password updated successfully" });
-      return res.json({ message: "Password updated successfully" });
     }
 
     // 4. Check Doctor Collection

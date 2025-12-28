@@ -8,7 +8,6 @@ import 'react-phone-input-2/lib/style.css';
 
 /* Auth */
 import Login from "./auth/Login";
-import Signup from "./auth/Signup";
 
 /* Admin */
 import AdminDashboard from "./admin-dashboard/admin/AdminDashboard";
