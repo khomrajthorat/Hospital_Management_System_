@@ -3,6 +3,7 @@ const express = require("express");
 const router = express.Router();
 const bcrypt = require("bcryptjs");
 const crypto = require("crypto");
+const jwt = require("jsonwebtoken");
 const { OAuth2Client } = require("google-auth-library");
 
 const client = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
@@ -606,11 +607,10 @@ router.post("/set-password", async (req, res) => {
     }
 
     const token = authHeader.split(' ')[1];
-    const jwt = require("jsonwebtoken");
     let decoded;
     try {
       decoded = jwt.verify(token, process.env.JWT_SECRET);
-    } catch (err) {
+    } catch {
       return res.status(401).json({ message: "Invalid or expired token" });
     }
 
