@@ -620,9 +620,15 @@ router.post("/set-password", async (req, res) => {
     }
 
     // Only allow this for Google login users in User collection
-    const user = await User.findOne({ email });
+    // Use decoded.id from token for secure user lookup
+    const user = await User.findById(decoded.id);
     if (!user) {
       return res.status(404).json({ message: "User not found" });
+    }
+
+    // Double-check email matches (additional security)
+    if (user.email !== email) {
+      return res.status(403).json({ message: "Email mismatch" });
     }
 
     // Verify user has googleId (Google login user)
