@@ -195,13 +195,20 @@ const Doctors = ({ sidebarCollapsed, toggleSidebar }) => {
       return toast.error("Please fill required fields");
     }
 
+    if (!serviceForm.charges) {
+      return toast.error("Please enter charges");
+    }
+
     try {
       const payload = {
         ...serviceForm,
+        charges: parseFloat(serviceForm.charges) || 0,
         doctor: `${selectedDoctor.firstName} ${selectedDoctor.lastName}`,
         doctorId: selectedDoctor._id,
         clinicName: serviceForm.clinic,
         active: serviceForm.status === "Active",
+        isTelemed: serviceForm.isTelemedicine,
+        allowMulti: serviceForm.allowMultiSelection ? "Yes" : "No",
       };
 
       const token = localStorage.getItem("token");
@@ -209,6 +216,17 @@ const Doctors = ({ sidebarCollapsed, toggleSidebar }) => {
       await axios.post(`${API_BASE}/services`, payload, config);
       toast.success("Service added successfully!");
       setServiceModalOpen(false);
+      // Reset form
+      setServiceForm({
+        name: "",
+        category: "",
+        charges: "",
+        duration: "00:30",
+        clinic: "",
+        isTelemedicine: false,
+        status: "Active",
+        allowMultiSelection: true,
+      });
     } catch (error) {
       console.error("Error adding service:", error);
       toast.error("Error adding service");

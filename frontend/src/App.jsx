@@ -215,6 +215,9 @@ function App() {
           <Route path="/EditPatient/:id" element={
             <EditPatient sidebarCollapsed={sidebarCollapsed} toggleSidebar={toggleSidebar} />
           } />
+          <Route path="/admin/EditPatient/:id" element={
+            <EditPatient sidebarCollapsed={sidebarCollapsed} toggleSidebar={toggleSidebar} />
+          } />
           <Route path="/doctors" element={
             <Doctors sidebarCollapsed={sidebarCollapsed} toggleSidebar={toggleSidebar} />
           } />

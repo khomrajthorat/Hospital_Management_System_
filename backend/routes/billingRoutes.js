@@ -30,9 +30,21 @@ router.post("/", verifyToken, async (req, res) => {
   try {
     const generatedBillNumber = Math.floor(100000 + Math.random() * 900000);
 
+    // Normalize services to array of objects
+    let services = req.body.services || [];
+    if (Array.isArray(services)) {
+      services = services.map(svc => {
+        if (typeof svc === 'string') {
+          return { name: svc.trim(), amount: 0 };
+        }
+        return svc;
+      });
+    }
+
     // Convert string IDs to ObjectIds for proper references
     const payload = {
       ...req.body,
+      services,
       billNumber: generatedBillNumber,
       patientId: toObjectId(req.body.patientId),
       doctorId: toObjectId(req.body.doctorId),
@@ -174,9 +186,21 @@ router.get("/:id", verifyToken, async (req, res) => {
 // --- UPDATE BILL ---
 router.put("/:id", verifyToken, async (req, res) => {
   try {
+    // Normalize services to array of objects if present
+    let services = req.body.services;
+    if (Array.isArray(services)) {
+      services = services.map(svc => {
+        if (typeof svc === 'string') {
+          return { name: svc.trim(), amount: 0 };
+        }
+        return svc;
+      });
+    }
+
     // Convert string IDs to ObjectIds
     const updateData = {
       ...req.body,
+      services: services !== undefined ? services : undefined,
       patientId: req.body.patientId ? toObjectId(req.body.patientId) : undefined,
       doctorId: req.body.doctorId ? toObjectId(req.body.doctorId) : undefined,
       clinicId: req.body.clinicId ? toObjectId(req.body.clinicId) : undefined,
