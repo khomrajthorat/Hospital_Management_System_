@@ -41,7 +41,7 @@ const AddBill = () => {
       try {
         const token = localStorage.getItem("token");
         const config = { headers: { Authorization: `Bearer ${token}` } };
-        
+
         const [docRes, patRes, clinicRes] = await Promise.all([
           axios.get(`${API_BASE}/doctors`, config),
           axios.get(`${API_BASE}/patients`, config),
@@ -252,8 +252,8 @@ const AddBill = () => {
                 >
                   <option value="">-- Select Encounter --</option>
                   {encounters.map((enc) => (
-                    <option key={enc._id} value={enc.encounterId || enc._id}>
-                      {new Date(enc.date).toLocaleDateString()} (ID: {enc.encounterId || "Pending"})
+                    <option key={enc._id} value={enc._id}>
+                      {new Date(enc.date).toLocaleDateString()} (ID: {enc.encounterId || enc._id})
                     </option>
                   ))}
                 </select>

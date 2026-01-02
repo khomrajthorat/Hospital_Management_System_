@@ -42,7 +42,7 @@ export default function PatientBookAppointment() {
   })();
 
   const patientName = storedPatient?.name || (storedPatient?.firstName ? `${storedPatient.firstName} ${storedPatient.lastName || ""}`.trim() : "") || "Patient";
-  
+
   // Get patient's registered clinicId - check both patient and authUser
   const patientClinicId = storedPatient?.clinicId || authUser?.clinicId || null;
   const params = new URLSearchParams(location.search);
@@ -130,7 +130,7 @@ export default function PatientBookAppointment() {
 
           // Auto-set clinic from patient's registered clinic
           if (patientClinicId) {
-            const patientClinic = clinicData.find(c => 
+            const patientClinic = clinicData.find(c =>
               (c._id === patientClinicId) || (c.id === patientClinicId)
             );
             if (patientClinic) {
@@ -170,11 +170,25 @@ export default function PatientBookAppointment() {
       const docName = docObj ? `${docObj.firstName} ${docObj.lastName}` : "";
 
       // Filter services: Doctor match OR Generic services
+      // Services store doctor field as username/id/name - need flexible matching
       const filteredServices = allServices.filter(s => {
-        if (!s.doctorName) return true;
-        const sDoc = s.doctorName.toLowerCase();
-        const dName = docName.toLowerCase();
-        return sDoc.includes(dName) || dName.includes(sDoc);
+        if (!s.doctorName) return true; // Generic service
+        const sDoc = s.doctorName.toLowerCase().trim();
+
+        // Match against various doctor identifiers
+        const firstName = (docObj.firstName || "").toLowerCase().trim();
+        const lastName = (docObj.lastName || "").toLowerCase().trim();
+        const fullName = `${firstName} ${lastName}`.trim();
+        const email = (docObj.email || "").toLowerCase().trim();
+
+        return sDoc === firstName ||
+          sDoc === lastName ||
+          sDoc === fullName ||
+          sDoc.includes(firstName) && firstName.length > 2 ||
+          sDoc.includes(fullName) ||
+          fullName.includes(sDoc) ||
+          sDoc === email ||
+          sDoc === email.split('@')[0]; // username part of email
       });
 
       setAvailableServices(filteredServices);
@@ -340,11 +354,11 @@ export default function PatientBookAppointment() {
               {patientClinicId && form.clinic ? (
                 <div className="mb-3">
                   <label className="form-label">Your Clinic</label>
-                  <input 
-                    type="text" 
-                    className="form-control" 
-                    value={form.clinic} 
-                    disabled 
+                  <input
+                    type="text"
+                    className="form-control"
+                    value={form.clinic}
+                    disabled
                     style={{ backgroundColor: '#f8f9fa' }}
                   />
                   <small className="text-muted">Appointments are booked at your registered clinic.</small>

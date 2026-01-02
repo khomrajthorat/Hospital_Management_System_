@@ -7,6 +7,23 @@ const fs = require("fs");
 const csv = require("csv-parser");
 const { verifyToken } = require("../middleware/auth");
 
+/**
+ * Helper to convert duration string (HH:mm or numeric) to minutes
+ */
+const parseDuration = (val) => {
+  if (!val) return 30; // Default
+  if (typeof val === 'number') return val;
+  const s = String(val).trim();
+  if (s.includes(':')) {
+    const parts = s.split(':');
+    const h = parseInt(parts[0] || 0, 10);
+    const m = parseInt(parts[1] || 0, 10);
+    return (h * 60) + m;
+  }
+  const n = parseInt(s, 10);
+  return isNaN(n) ? 30 : n;
+};
+
 // --- 1. CONFIGURATION FOR IMAGE/FILE UPLOAD ---
 const storage = multer.diskStorage({
   destination: (req, file, cb) => {
@@ -65,19 +82,35 @@ router.get("/", verifyToken, async (req, res) => {
     }
 
     // Multi-tenant filtering
-    // Multi-tenant filtering
     let currentUser = null;
     let safeClinicId = null;
 
     if (req.user.role === 'admin') {
       currentUser = await require("../models/Admin").findById(req.user.id);
+    } else if (req.user.role === 'doctor') {
+      // Doctors are stored in Doctor model
+      const Doctor = require("../models/Doctor");
+      currentUser = await Doctor.findById(req.user.id);
+      if (currentUser?.clinicId) {
+        safeClinicId = currentUser.clinicId;
+      }
     } else {
       currentUser = await require("../models/User").findById(req.user.id);
+
+      // If clinicId not found in User, check Patient model (for patients)
+      if (currentUser && !currentUser.clinicId && (req.user.role === 'patient' || currentUser.role === 'patient')) {
+        const Patient = require("../models/Patient");
+        const patientRecord = await Patient.findOne({ userId: req.user.id });
+        if (patientRecord && patientRecord.clinicId) {
+          safeClinicId = patientRecord.clinicId;
+        }
+      }
     }
 
-    if (currentUser) {
+    if (!safeClinicId && currentUser) {
       safeClinicId = currentUser.clinicId;
-    } else {
+    }
+    if (!safeClinicId) {
       safeClinicId = req.user.clinicId || null;
     }
 
@@ -106,10 +139,12 @@ router.get("/", verifyToken, async (req, res) => {
     }
 
     const skip = (Number(page) - 1) * Number(limit);
+
     const [rows, total] = await Promise.all([
       Service.find(filter).sort({ [sort]: order === "asc" ? 1 : -1 }).skip(skip).limit(Number(limit)),
       Service.countDocuments(filter),
     ]);
+
     res.json({ rows, total });
   } catch (err) {
     console.error("GET /services error:", err);
@@ -163,7 +198,7 @@ router.post("/import", verifyToken, upload.single("file"), (req, res) => {
           clinicId: req.user.role === 'admin' ? (req.body.clinicId || null) : req.user.clinicId,
           doctor: data.doctor,
           charges: data.charges,
-          duration: data.duration,
+          duration: parseDuration(data.duration),
           active: isTrue(data.active),
           isTelemed: isTrue(data.isTelemed),
           allowMulti: isTrue(data.allowMulti),
@@ -200,14 +235,61 @@ router.post("/import", verifyToken, upload.single("file"), (req, res) => {
 // POST /services (Create Single)
 router.post("/", verifyToken, upload.single("image"), async (req, res) => {
   try {
+    // Resolve clinicId properly from multiple sources
+    let resolvedClinicId = null;
+    const User = require("../models/User");
+    const Doctor = require("../models/Doctor");
+    const Clinic = require("../models/Clinic");
+
+    if (req.user.role === 'admin') {
+      // Admin can specify any clinicId, or we resolve from clinicName
+      resolvedClinicId = req.body.clinicId || null;
+
+      // If admin didn't provide clinicId but provided clinicName, look it up
+      if (!resolvedClinicId && req.body.clinicName) {
+        const clinic = await Clinic.findOne({
+          $or: [
+            { name: new RegExp(`^${req.body.clinicName}$`, 'i') },
+            { clinicName: new RegExp(`^${req.body.clinicName}$`, 'i') }
+          ]
+        });
+        if (clinic) {
+          resolvedClinicId = clinic._id;
+        }
+      }
+    } else if (req.user.role === 'doctor') {
+      // Doctors are stored in Doctor model
+      const doctor = await Doctor.findById(req.user.id);
+      resolvedClinicId = doctor?.clinicId || req.user.clinicId || null;
+    } else {
+      // For other roles (clinic_admin, receptionist, etc.), get clinicId from User record
+      const currentUser = await User.findById(req.user.id);
+      resolvedClinicId = currentUser?.clinicId || req.user.clinicId || null;
+    }
+
+    // Final fallback: if still no clinicId, try to resolve from clinicName
+    if (!resolvedClinicId && req.body.clinicName) {
+      const clinic = await Clinic.findOne({
+        $or: [
+          { name: new RegExp(`^${req.body.clinicName}$`, 'i') },
+          { clinicName: new RegExp(`^${req.body.clinicName}$`, 'i') }
+        ]
+      });
+      if (clinic) {
+        resolvedClinicId = clinic._id;
+      }
+    }
+
     const payload = {
       ...req.body,
       // Explicit string-to-boolean conversion for FormData
       active: req.body.active === "true" || req.body.active === true,
       isTelemed: req.body.isTelemed === "true" || req.body.isTelemed === true,
       allowMulti: req.body.allowMulti === "true" || req.body.allowMulti === true,
-      // Enforce Isolation
-      clinicId: req.user.role === 'admin' ? (req.body.clinicId || null) : req.user.clinicId,
+      // Enforce Isolation with properly resolved clinicId
+      clinicId: resolvedClinicId,
+      // Parse duration to number (minutes)
+      duration: parseDuration(req.body.duration)
     };
 
     // Auto-generate ID if not provided
@@ -238,6 +320,7 @@ router.put("/:id", verifyToken, upload.single("image"), async (req, res) => {
     if (payload.active !== undefined) payload.active = payload.active === "true" || payload.active === true;
     if (payload.isTelemed !== undefined) payload.isTelemed = payload.isTelemed === "true" || payload.isTelemed === true;
     if (payload.allowMulti !== undefined) payload.allowMulti = payload.allowMulti === "true" || payload.allowMulti === true;
+    if (payload.duration !== undefined) payload.duration = parseDuration(payload.duration);
 
     if (req.file) {
       const protocol = req.protocol;

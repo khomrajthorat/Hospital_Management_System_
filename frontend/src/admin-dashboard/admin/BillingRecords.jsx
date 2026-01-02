@@ -274,7 +274,7 @@ export default function BillingRecords({ sidebarCollapsed = false, toggleSidebar
         headers: { Authorization: `Bearer ${token}` },
         responseType: 'blob'
       });
-      
+
       // Create blob URL and open in new tab
       const blob = new Blob([response.data], { type: 'application/pdf' });
       const url = window.URL.createObjectURL(blob);
@@ -292,11 +292,24 @@ export default function BillingRecords({ sidebarCollapsed = false, toggleSidebar
   };
 
   const lookupCustomId = (bill) => {
-    if (bill.encounterId && bill.encounterId.startsWith("ENC-")) return bill.encounterId;
-    const mongoId = bill.encounterId || bill.encounter_id || bill.encounter;
-    if (!mongoId) return "-";
-    const found = encountersList.find((e) => e._id === mongoId);
-    return (found && found.encounterId) ? found.encounterId : (typeof mongoId === "string" ? mongoId.substring(0, 8) + "..." : "-");
+    // Check encounterCustomId first (set by backend)
+    if (bill.encounterCustomId) {
+      return bill.encounterCustomId;
+    }
+    // Check encounterId
+    if (bill.encounterId) {
+      const encId = bill.encounterId;
+      if (typeof encId === 'string') {
+        if (encId.startsWith("ENC-")) return encId;
+        // If it's a MongoDB ObjectId string, show truncated version
+        if (encId.length === 24) return `ENC-${encId.substring(0, 6)}`;
+        return encId;
+      }
+      if (typeof encId === 'object' && encId._id) {
+        return encId.encounterId || `ENC-${encId._id.toString().substring(0, 6)}`;
+      }
+    }
+    return "-";
   };
 
   // --- FILTER LOGIC ---

@@ -245,8 +245,8 @@ const AddBill = () => {
                 >
                   <option value="">-- Select Encounter --</option>
                   {encounters.map((enc) => (
-                    <option key={enc._id} value={enc.encounterId || enc._id}>
-                      {new Date(enc.date).toLocaleDateString()} (ID: {enc.encounterId || "Pending"})
+                    <option key={enc._id} value={enc._id}>
+                      {new Date(enc.date).toLocaleDateString()} (ID: {enc.encounterId || enc._id})
                     </option>
                   ))}
                 </select>
