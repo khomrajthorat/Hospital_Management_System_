@@ -12,11 +12,6 @@ import { FaSort } from "react-icons/fa";
 import axios from "axios";
 import toast, { Toaster } from "react-hot-toast";
 
-// FIX 1: Removed the naming conflict. 
-// If you have a physical CSS file, import it without a name, 
-// but since you use 'servicesStyles' string below, you might not need this line at all.
-// import ".../Component/Shared/Services.css"; 
-
 import API_BASE from "../../config";
 
 /* ---------- Local axios instance ---------- */
@@ -83,8 +78,84 @@ const servicesStyles = `
   .services-scope .duration-column::-webkit-scrollbar-track { background:#f1f1f1; }
   .services-scope .duration-column::-webkit-scrollbar-thumb { background:#ccc;border-radius:2px; }
 
-  /* keep toasts on top */
-  .react-hot-toast { z-index: 2147483647 !important; }
+ /* --- MOBILE CARD VIEW (Professional Look) --- */
+  @media (max-width: 768px) {
+    /* 1. Stop forcing wide width */
+    .services-scope .custom-table {
+      min-width: 100% !important; 
+    }
+
+    /* 2. Hide Table Header */
+    .services-scope .custom-table thead {
+      display: none;
+    }
+
+    /* 3. Hide the inline Filter Row on mobile (it looks messy in card view) */
+    .services-scope .custom-table tbody tr:first-child {
+      display: none;
+    }
+
+    /* 4. Turn Rows into Cards */
+    .services-scope .custom-table tbody tr {
+      display: block;
+      background: #fff;
+      margin-bottom: 12px;
+      border: 1px solid #e0e0e0;
+      border-radius: 8px;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.03);
+      padding: 8px;
+    }
+
+    /* 5. Make Cells look like list items */
+    .services-scope .custom-table tbody td {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 10px 8px;
+      border-bottom: 1px solid #f5f5f5;
+      text-align: right;
+      font-size: 0.9rem;
+    }
+
+    /* Remove border from last cell in card */
+    .services-scope .custom-table tbody td:last-child {
+      border-bottom: none;
+    }
+
+    /* 6. Inject Column Names using data-label */
+    .services-scope .custom-table tbody td::before {
+      content: attr(data-label);
+      font-weight: 700;
+      color: #6c757d;
+      font-size: 0.75rem;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      text-align: left;
+      margin-right: auto; /* Pushes value to the right */
+    }
+
+    /* 7. Hide the checkbox pseudo-label and justify start */
+    .services-scope .custom-table tbody td:first-child {
+      justify-content: flex-start;
+      border-bottom: none;
+      padding-bottom: 0;
+    }
+    .services-scope .custom-table tbody td:first-child::before {
+      display: none;
+    }
+
+    /* 8. Fix Action Buttons alignment */
+    .services-scope .action-btn {
+        width: 32px; height: 32px;
+    }
+    
+    /* 9. Header & Pagination adjustments */
+    .services-scope .header-actions {
+      width: 100%; flex-direction: column; gap: 8px; margin-top: 10px;
+    }
+    .services-scope .header-actions .btn { width: 100%; }
+    .services-scope .pagination-container { flex-direction: column; gap: 15px; }
+  }
 `;
 
 /* ---------- Helper Components ---------- */
@@ -335,7 +406,7 @@ function ServiceForm({
             ></button>
           </div>
           <div className="modal-body">
-            <div className="row g-3">
+            <div className="row g-3 flex-column-reverse flex-lg-row">
               <div className="col-lg-9">
                 <div className="row g-3">
                   {/* --- Dynamic Category Dropdown --- */}
@@ -897,11 +968,11 @@ export default function SharedServices({
       />
 
       <div className="container-fluid py-2">
-        <div className="d-flex flex-wrap justify-content-between align-items-center mb- 2bg-white p-2 rounded shadow-sm border gap-2">
-          <h5 className="mb-0 fw-bold text-primary">
+        <div className="d-flex flex-wrap justify-content-between align-items-center mb- 2bg-white p-2  gap-2">
+          <h4 className="mb-0 fw-bold text-primary">
             {isDoctor ? "My Services" : "Service List"}
-          </h5>
-          <div className="d-flex gap-2">
+          </h4>
+          <div className="d-flex gap-2 header-actions">
             {!isDoctor && (
               <>
                 <button
@@ -1129,8 +1200,8 @@ export default function SharedServices({
                           <input type="checkbox" className="form-check-input" />
                         </td>
 
-                        <td data-label="#" className="fw-bold text-secondary">
-                          {total - (page - 1) * limit - i}
+                        <td data-label="ID" className="fw-bold text-secondary">
+                          {(page - 1) * limit + i + 1}
                         </td>
 
                         {!isDoctor && (
@@ -1140,7 +1211,7 @@ export default function SharedServices({
                         )}
 
                         <td data-label="Name">
-                          <div className="d-flex align-items-center gap-2 justify-content-end justify-content-md-start">
+                          <div className="d-flex align-items-center gap-2">
                             <div className="service-avatar-circle">
                               {r.imageUrl ? (
                                 <img
@@ -1158,9 +1229,7 @@ export default function SharedServices({
                           </div>
                         </td>
 
-                        {!isDoctor && (
-                          <td data-label="Clinic">{r.clinicName}</td>
-                        )}
+                        {!isDoctor && (<td data-label="Clinic">{r.clinicName}</td>)}
                         {!isDoctor && <td data-label="Doctor">{r.doctor}</td>}
 
                         <td data-label="Charges">{r.charges}</td>
@@ -1215,7 +1284,7 @@ export default function SharedServices({
             </table>
           </div>
 
-          <div className="d-flex flex-wrap justify-content-between align-items-center p-3 border-top bg-light text-secondary gap-3">
+          <div className="d-flex flex-wrap justify-content-between align-items-center p-3 border-top bg-light text-secondary gap-3 pagination-container">
             <div className="d-flex align-items-center gap-2 small">
               <span>Rows per page:</span>
               <select
