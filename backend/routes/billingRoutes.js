@@ -30,9 +30,21 @@ router.post("/", verifyToken, async (req, res) => {
   try {
     const generatedBillNumber = Math.floor(100000 + Math.random() * 900000);
 
+    // Normalize services to array of objects
+    let services = req.body.services || [];
+    if (Array.isArray(services)) {
+      services = services.map(svc => {
+        if (typeof svc === 'string') {
+          return { name: svc.trim(), amount: 0 };
+        }
+        return svc;
+      });
+    }
+
     // Convert string IDs to ObjectIds for proper references
     const payload = {
       ...req.body,
+      services,
       billNumber: generatedBillNumber,
       patientId: toObjectId(req.body.patientId),
       doctorId: toObjectId(req.body.doctorId),
@@ -103,12 +115,28 @@ router.get("/", verifyToken, async (req, res) => {
       return res.json([]);
     }
 
+    // First fetch bills without encounterId population (to avoid cast errors for string values)
     const bills = await BillingModel.find(query)
       .sort({ createdAt: -1 })
       .populate({ path: "patientId", select: "firstName lastName email phone", model: "Patient" })
       .populate({ path: "doctorId", select: "firstName lastName email", model: "Doctor" })
       .populate({ path: "clinicId", select: "name address", model: "Clinic" })
       .lean();
+
+    // Get all unique encounter ObjectIds from bills (filter out string values)
+    const encounterObjectIds = bills
+      .filter(b => b.encounterId && mongoose.Types.ObjectId.isValid(b.encounterId))
+      .map(b => b.encounterId);
+
+    // Fetch encounters in bulk
+    const Encounter = require("../models/Encounter");
+    const encountersMap = {};
+    if (encounterObjectIds.length > 0) {
+      const encounters = await Encounter.find({ _id: { $in: encounterObjectIds } }).select("encounterId date").lean();
+      encounters.forEach(enc => {
+        encountersMap[enc._id.toString()] = enc;
+      });
+    }
 
     // Normalize data - use populated data or fallback to stored names
     const normalized = bills.map(bill => {
@@ -129,6 +157,20 @@ router.get("/", verifyToken, async (req, res) => {
       // Clinic info
       if (copy.clinicId && typeof copy.clinicId === "object") {
         copy.clinicName = copy.clinicName || copy.clinicId.name || "";
+      }
+
+      // Encounter info - handle both ObjectId and string values
+      if (copy.encounterId) {
+        const encIdStr = copy.encounterId.toString();
+        if (mongoose.Types.ObjectId.isValid(encIdStr)) {
+          // It's an ObjectId - lookup the encounter
+          const enc = encountersMap[encIdStr];
+          if (enc) {
+            copy.encounterCustomId = enc.encounterId || null;
+            copy.encounterId = enc.encounterId || encIdStr;
+          }
+        }
+        // If it's already a string like "ENC-1234", keep it as is
       }
 
       return copy;
@@ -174,9 +216,21 @@ router.get("/:id", verifyToken, async (req, res) => {
 // --- UPDATE BILL ---
 router.put("/:id", verifyToken, async (req, res) => {
   try {
+    // Normalize services to array of objects if present
+    let services = req.body.services;
+    if (Array.isArray(services)) {
+      services = services.map(svc => {
+        if (typeof svc === 'string') {
+          return { name: svc.trim(), amount: 0 };
+        }
+        return svc;
+      });
+    }
+
     // Convert string IDs to ObjectIds
     const updateData = {
       ...req.body,
+      services,
       patientId: req.body.patientId ? toObjectId(req.body.patientId) : undefined,
       doctorId: req.body.doctorId ? toObjectId(req.body.doctorId) : undefined,
       clinicId: req.body.clinicId ? toObjectId(req.body.clinicId) : undefined,
