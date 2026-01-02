@@ -2,7 +2,7 @@ import React, { useState, useEffect } from "react";
 import DoctorSidebar from "../components/DoctorSidebar";
 import DoctorNavbar from "../components/DoctorNavbar";
 import "../styles/DoctorLayout.css";
-import "../styles/doctorsidebar.css"; 
+import "../styles/DoctorSidebar.css"; 
 
 import PageTransition from "../../components/PageTransition";
 
