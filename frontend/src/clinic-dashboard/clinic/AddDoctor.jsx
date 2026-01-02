@@ -13,6 +13,15 @@ const AddDoctor = () => {
   const location = useLocation();
   const qualificationRef = useRef(null);
 
+  // Get clinic info from localStorage for auto-detecting clinic
+  let authUser = {};
+  try {
+    authUser = JSON.parse(localStorage.getItem("authUser") || "{}");
+  } catch (e) {
+    authUser = {};
+  }
+  const autoClinicName = authUser?.clinicName || "";
+
   const [showQualificationForm, setShowQualificationForm] = useState(false);
   const [isEditMode, setIsEditMode] = useState(false);
   const [editDoctorId, setEditDoctorId] = useState(null);
@@ -21,7 +30,7 @@ const AddDoctor = () => {
     firstName: "",
     lastName: "",
     email: "",
-    clinic: "",
+    clinic: autoClinicName, // Auto-fill with clinic name
     phone: "",
     dob: "",
     specialization: "",
@@ -267,36 +276,44 @@ const AddDoctor = () => {
               />
             </div>
 
-            {/* Select Clinic – dynamic from /api/clinics */}
+            {/* Select Clinic – auto-detected for clinic dashboard */}
             <div className="col-md-4">
-              <label className="form-label">Select Clinic *</label>
-              <select
-                name="clinic"
-                className="form-select"
-                value={formData.clinic}
-                onChange={handleChange}
-                required
-                disabled={clinicsLoading || !!clinicsError}
-              >
-                <option value="">
-                  {clinicsLoading
-                    ? "Loading clinics..."
-                    : clinicsError
-                      ? "Error loading clinics"
-                      : clinics.length === 0
-                        ? "No clinics found"
-                        : "Select clinic"}
-                </option>
-
-                {clinics.map((clinic) => (
-                  <option
-                    key={clinic._id}
-                    value={clinic.name} // keep storing name like before
-                  >
-                    {clinic.name}
+              <label className="form-label">Select Clinic {autoClinicName ? "(Auto-detected)" : "*"}</label>
+              {autoClinicName ? (
+                <input
+                  className="form-control bg-light"
+                  value={autoClinicName}
+                  readOnly
+                />
+              ) : (
+                <select
+                  name="clinic"
+                  className="form-select"
+                  value={formData.clinic}
+                  onChange={handleChange}
+                  required
+                  disabled={clinicsLoading || !!clinicsError}
+                >
+                  <option value="">
+                    {clinicsLoading
+                      ? "Loading clinics..."
+                      : clinicsError
+                        ? "Error loading clinics"
+                        : clinics.length === 0
+                          ? "No clinics found"
+                          : "Select clinic"}
                   </option>
-                ))}
-              </select>
+
+                  {clinics.map((clinic) => (
+                    <option
+                      key={clinic._id}
+                      value={clinic.name} // keep storing name like before
+                    >
+                      {clinic.name}
+                    </option>
+                  ))}
+                </select>
+              )}
             </div>
 
             <div className="col-md-4">

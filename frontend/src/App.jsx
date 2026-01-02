@@ -70,6 +70,13 @@ const ClinicEncounterTemplateList = lazy(() => import("./clinic-dashboard/clinic
 const ClinicMedicalReportPage = lazy(() => import("./clinic-dashboard/clinic/MedicalReportPage"));
 const ClinicEncounterDetails = lazy(() => import("./clinic-dashboard/clinic/EncounterDetails"));
 const ClinicEncounterTemplateDetails = lazy(() => import("./clinic-dashboard/clinic/EncounterTemplateDetails"));
+/* Clinic-specific Add/Edit components */
+const ClinicAddPatient = lazy(() => import("./clinic-dashboard/clinic/AddPatient"));
+const ClinicEditPatient = lazy(() => import("./clinic-dashboard/clinic/EditPatient"));
+const ClinicAddDoctor = lazy(() => import("./clinic-dashboard/clinic/AddDoctor"));
+const ClinicAddReceptionist = lazy(() => import("./clinic-dashboard/clinic/AddReceptionist"));
+const ClinicAddBill = lazy(() => import("./clinic-dashboard/clinic/AddBill"));
+const ClinicEditBill = lazy(() => import("./clinic-dashboard/clinic/EditBill"));
 /* Clinic Settings - Reuse Admin Settings layout/pages or duplicate if needed. For now assuming reuse but mapped to clinic paths if they are generic enough, OR use copied settings if duplicated. */
 const ClinicSettingsLayout = lazy(() => import("./clinic-dashboard/clinic/settings/SettingsLayout")); // Assuming copied
 const ClinicHolidaySettings = lazy(() => import("./clinic-dashboard/clinic/settings/pages/HolidaySettings"));
@@ -303,24 +310,24 @@ function App() {
           <Route path="/clinic-dashboard" element={
             <ClinicDashboard sidebarCollapsed={sidebarCollapsed} toggleSidebar={toggleSidebar} />
           } />
-          {/* Clinic Specific Routes to avoid Admin Redirection */}
+          {/* Clinic Specific Routes - using clinic-dashboard components */}
           <Route path="/clinic-dashboard/AddPatient" element={
-            <AddPatient sidebarCollapsed={sidebarCollapsed} toggleSidebar={toggleSidebar} />
+            <ClinicAddPatient sidebarCollapsed={sidebarCollapsed} toggleSidebar={toggleSidebar} />
           } />
           <Route path="/clinic-dashboard/EditPatient/:id" element={
-            <EditPatient sidebarCollapsed={sidebarCollapsed} toggleSidebar={toggleSidebar} />
+            <ClinicEditPatient sidebarCollapsed={sidebarCollapsed} toggleSidebar={toggleSidebar} />
           } />
           <Route path="/clinic-dashboard/add-doctor" element={
-            <AddDoctor sidebarCollapsed={sidebarCollapsed} toggleSidebar={toggleSidebar} />
+            <ClinicAddDoctor sidebarCollapsed={sidebarCollapsed} toggleSidebar={toggleSidebar} />
           } />
           <Route path="/clinic-dashboard/add-receptionist" element={
-            <AddReceptionist sidebarCollapsed={sidebarCollapsed} toggleSidebar={toggleSidebar} />
+            <ClinicAddReceptionist sidebarCollapsed={sidebarCollapsed} toggleSidebar={toggleSidebar} />
           } />
           <Route path="/clinic-dashboard/AddBill" element={
-            <AddBill sidebarCollapsed={sidebarCollapsed} toggleSidebar={toggleSidebar} />
+            <ClinicAddBill sidebarCollapsed={sidebarCollapsed} toggleSidebar={toggleSidebar} />
           } />
           <Route path="/clinic-dashboard/EditBill/:id" element={
-            <EditBill sidebarCollapsed={sidebarCollapsed} toggleSidebar={toggleSidebar} />
+            <ClinicEditBill sidebarCollapsed={sidebarCollapsed} toggleSidebar={toggleSidebar} />
           } />
 
           <Route path="/clinic-dashboard/appointments" element={
