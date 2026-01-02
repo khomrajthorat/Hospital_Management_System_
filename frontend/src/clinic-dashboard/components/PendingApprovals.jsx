@@ -4,8 +4,11 @@ import axios from "axios";
 import toast, { Toaster } from "react-hot-toast";
 import { FaUserMd, FaUserNurse, FaCheck, FaTimes, FaSpinner } from "react-icons/fa";
 import API_BASE from "../../config";
+import Sidebar from "./Sidebar";
+import Navbar from "./Navbar";
+import "../styles/admin-shared.css";
 
-export default function PendingApprovals() {
+export default function PendingApprovals({ sidebarCollapsed, toggleSidebar }) {
     const [pendingRequests, setPendingRequests] = useState([]);
     const [loading, setLoading] = useState(true);
     const [clinicName, setClinicName] = useState("");
@@ -87,103 +90,123 @@ export default function PendingApprovals() {
     };
 
     return (
-        <div className="container-fluid">
-            <Toaster position="top-right" />
+        <div>
+            {/* SIDEBAR */}
+            <Sidebar collapsed={sidebarCollapsed} />
 
-            <div className="card shadow-sm border-0">
-                <div className="card-header bg-primary text-white d-flex justify-content-between align-items-center">
-                    <h5 className="mb-0">
-                        <FaUserMd className="me-2" />
-                        Pending Staff Approvals
-                    </h5>
-                    {clinicName && <span className="badge bg-light text-primary">{clinicName}</span>}
-                </div>
+            {/* MAIN CONTENT */}
+            <div
+                className="main-content-transition"
+                style={{
+                    marginLeft: sidebarCollapsed ? "64px" : "250px",
+                    minHeight: "100vh",
+                    background: "#f5f6fa",
+                }}
+            >
+                {/* NAVBAR */}
+                <Navbar toggleSidebar={toggleSidebar} />
 
-                <div className="card-body">
-                    {loading ? (
-                        <div className="text-center py-5">
-                            <FaSpinner className="fa-spin fa-2x text-primary" />
-                            <p className="mt-3 text-muted">Loading pending requests...</p>
+                {/* CONTENT */}
+                <div className="container-fluid py-4">
+                    <Toaster position="top-right" />
+
+                    <div className="card shadow-sm border-0">
+                        <div className="card-header bg-primary text-white d-flex justify-content-between align-items-center">
+                            <h5 className="mb-0">
+                                <FaUserMd className="me-2" />
+                                Pending Staff Approvals
+                            </h5>
+                            {clinicName && <span className="badge bg-light text-primary">{clinicName}</span>}
                         </div>
-                    ) : pendingRequests.length === 0 ? (
-                        <div className="text-center py-5">
-                            <div style={{ fontSize: "48px", opacity: 0.5 }}>✅</div>
-                            <h5 className="text-muted mt-3">No Pending Requests</h5>
-                            <p className="text-muted">All staff registration requests have been processed.</p>
+
+                        <div className="card-body">
+                            {loading ? (
+                                <div className="text-center py-5">
+                                    <FaSpinner className="fa-spin fa-2x text-primary" />
+                                    <p className="mt-3 text-muted">Loading pending requests...</p>
+                                </div>
+                            ) : pendingRequests.length === 0 ? (
+                                <div className="text-center py-5">
+                                    <div style={{ fontSize: "48px", opacity: 0.5 }}>✅</div>
+                                    <h5 className="text-muted mt-3">No Pending Requests</h5>
+                                    <p className="text-muted">All staff registration requests have been processed.</p>
+                                </div>
+                            ) : (
+                                <div className="table-responsive">
+                                    <table className="table table-hover align-middle">
+                                        <thead className="table-light">
+                                            <tr>
+                                                <th>Name</th>
+                                                <th>Email</th>
+                                                <th>Phone</th>
+                                                <th>Role</th>
+                                                <th>Requested</th>
+                                                <th className="text-center">Actions</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            {pendingRequests.map((request) => (
+                                                <tr key={request._id}>
+                                                    <td>
+                                                        <div className="d-flex align-items-center">
+                                                            <div
+                                                                className="rounded-circle bg-primary bg-opacity-10 d-flex align-items-center justify-content-center me-2"
+                                                                style={{ width: "40px", height: "40px" }}
+                                                            >
+                                                                {request.role === "doctor" ? (
+                                                                    <FaUserMd className="text-primary" />
+                                                                ) : (
+                                                                    <FaUserNurse className="text-info" />
+                                                                )}
+                                                            </div>
+                                                            <strong>{request.name}</strong>
+                                                        </div>
+                                                    </td>
+                                                    <td>{request.email}</td>
+                                                    <td>{request.phone || "-"}</td>
+                                                    <td>
+                                                        <span className={`badge ${request.role === "doctor" ? "bg-primary" : "bg-info"}`}>
+                                                            {request.role === "doctor" ? "Doctor" : "Staff"}
+                                                        </span>
+                                                    </td>
+                                                    <td className="text-muted small">{formatDate(request.createdAt)}</td>
+                                                    <td className="text-center">
+                                                        <div className="btn-group">
+                                                            <button
+                                                                className="btn btn-success btn-sm"
+                                                                onClick={() => handleApprove(request)}
+                                                                disabled={processingId === request._id}
+                                                                title="Approve"
+                                                            >
+                                                                {processingId === request._id ? (
+                                                                    <FaSpinner className="fa-spin" />
+                                                                ) : (
+                                                                    <FaCheck />
+                                                                )}
+                                                                <span className="ms-1 d-none d-md-inline">Approve</span>
+                                                            </button>
+                                                            <button
+                                                                className="btn btn-danger btn-sm"
+                                                                onClick={() => handleReject(request)}
+                                                                disabled={processingId === request._id}
+                                                                title="Reject"
+                                                            >
+                                                                <FaTimes />
+                                                                <span className="ms-1 d-none d-md-inline">Reject</span>
+                                                            </button>
+                                                        </div>
+                                                    </td>
+                                                </tr>
+                                            ))}
+                                        </tbody>
+                                    </table>
+                                </div>
+                            )}
                         </div>
-                    ) : (
-                        <div className="table-responsive">
-                            <table className="table table-hover align-middle">
-                                <thead className="table-light">
-                                    <tr>
-                                        <th>Name</th>
-                                        <th>Email</th>
-                                        <th>Phone</th>
-                                        <th>Role</th>
-                                        <th>Requested</th>
-                                        <th className="text-center">Actions</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    {pendingRequests.map((request) => (
-                                        <tr key={request._id}>
-                                            <td>
-                                                <div className="d-flex align-items-center">
-                                                    <div
-                                                        className="rounded-circle bg-primary bg-opacity-10 d-flex align-items-center justify-content-center me-2"
-                                                        style={{ width: "40px", height: "40px" }}
-                                                    >
-                                                        {request.role === "doctor" ? (
-                                                            <FaUserMd className="text-primary" />
-                                                        ) : (
-                                                            <FaUserNurse className="text-info" />
-                                                        )}
-                                                    </div>
-                                                    <strong>{request.name}</strong>
-                                                </div>
-                                            </td>
-                                            <td>{request.email}</td>
-                                            <td>{request.phone || "-"}</td>
-                                            <td>
-                                                <span className={`badge ${request.role === "doctor" ? "bg-primary" : "bg-info"}`}>
-                                                    {request.role === "doctor" ? "Doctor" : "Staff"}
-                                                </span>
-                                            </td>
-                                            <td className="text-muted small">{formatDate(request.createdAt)}</td>
-                                            <td className="text-center">
-                                                <div className="btn-group">
-                                                    <button
-                                                        className="btn btn-success btn-sm"
-                                                        onClick={() => handleApprove(request)}
-                                                        disabled={processingId === request._id}
-                                                        title="Approve"
-                                                    >
-                                                        {processingId === request._id ? (
-                                                            <FaSpinner className="fa-spin" />
-                                                        ) : (
-                                                            <FaCheck />
-                                                        )}
-                                                        <span className="ms-1 d-none d-md-inline">Approve</span>
-                                                    </button>
-                                                    <button
-                                                        className="btn btn-danger btn-sm"
-                                                        onClick={() => handleReject(request)}
-                                                        disabled={processingId === request._id}
-                                                        title="Reject"
-                                                    >
-                                                        <FaTimes />
-                                                        <span className="ms-1 d-none d-md-inline">Reject</span>
-                                                    </button>
-                                                </div>
-                                            </td>
-                                        </tr>
-                                    ))}
-                                </tbody>
-                            </table>
-                        </div>
-                    )}
+                    </div>
                 </div>
             </div>
         </div>
     );
 }
+

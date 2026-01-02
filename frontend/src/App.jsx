@@ -378,8 +378,9 @@ function App() {
           } />
           <Route path="/clinic-dashboard/encounters/:id/reports" element={
             <ClinicMedicalReportPage sidebarCollapsed={sidebarCollapsed} toggleSidebar={toggleSidebar} />
+          } />
           <Route path="/clinic-dashboard/pending-approvals" element={
-            <PendingApprovals />
+            <PendingApprovals sidebarCollapsed={sidebarCollapsed} toggleSidebar={toggleSidebar} />
           } />
           <Route path="/clinic-dashboard/settings" element={<ClinicSettingsLayout sidebarCollapsed={sidebarCollapsed} toggleSidebar={toggleSidebar} />}>
             <Route index element={<ClinicHolidaySettings />} />
