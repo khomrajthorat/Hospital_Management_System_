@@ -1,5 +1,6 @@
 import React, { useState, useRef, useEffect } from "react";
-import { FaBars } from "react-icons/fa";
+// CHANGE 1: Added specific icons to the import
+import { FaBars, FaUser, FaLock, FaSignOutAlt } from "react-icons/fa";
 import "bootstrap/dist/css/bootstrap.min.css";
 import { useNavigate } from "react-router-dom";
 import API_BASE from "../../config";
@@ -10,8 +11,14 @@ export default function PatientNavbar({ toggleSidebar }) {
   const menuRef = useRef();
   const navigate = useNavigate();
 
-  const authUser = JSON.parse(localStorage.getItem("authUser") || "{}");
-  const userId = authUser?.id;
+  // CHANGE 2: Safer localStorage parsing
+  let userId = null;
+  try {
+    const authUser = JSON.parse(localStorage.getItem("authUser") || "{}");
+    userId = authUser?.id;
+  } catch (e) {
+    console.error("Error parsing authUser:", e);
+  }
 
   // Fetch patient profile on mount
   useEffect(() => {
@@ -23,11 +30,14 @@ export default function PatientNavbar({ toggleSidebar }) {
   const fetchProfile = async () => {
     try {
       const token = localStorage.getItem("token");
-      const res = await fetch(`${API_BASE}/api/user/${userId}`, {
+      
+      // NOTE: If you still get a 404, check if your backend route is actually "/api/users" (plural)
+      const res = await fetch(`${API_BASE}/api/users/${userId}`, {
         headers: {
           Authorization: `Bearer ${token}`,
         },
       });
+      
       if (res.ok) {
         const data = await res.json();
         setProfileData({
@@ -131,7 +141,8 @@ export default function PatientNavbar({ toggleSidebar }) {
                 setOpen(false);
               }}
             >
-              <i className="fa fa-user"></i> My Profile
+              {/* CHANGE 3: Replaced <i> tag with React Icon */}
+              <FaUser /> My Profile
             </button>
 
             <button
@@ -141,14 +152,16 @@ export default function PatientNavbar({ toggleSidebar }) {
                 setOpen(false);
               }}
             >
-              <i className="fa fa-lock"></i> Change Password
+              {/* CHANGE 4: Replaced <i> tag with React Icon */}
+              <FaLock /> Change Password
             </button>
 
             <button
               className="dropdown-item text-danger d-flex align-items-center gap-2"
               onClick={handleLogout}
             >
-              <i className="fa fa-sign-out-alt"></i> Logout
+              {/* CHANGE 5: Replaced <i> tag with React Icon */}
+              <FaSignOutAlt /> Logout
             </button>
           </div>
         )}
