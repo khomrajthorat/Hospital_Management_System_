@@ -28,18 +28,40 @@ const Navbar = ({ toggleSidebar }) => {
   const fetchProfile = async () => {
     try {
       const token = localStorage.getItem("token");
-      const res = await fetch(`${API_BASE}/api/user/${userId}`, {
+      const userRole = authUser?.role?.toLowerCase();
+      
+      // Determine the correct endpoint based on role
+      let endpoint;
+      if (userRole === 'admin' || userRole === 'clinic_admin') {
+        endpoint = `${API_BASE}/api/admin/${userId}`;
+      } else {
+        endpoint = `${API_BASE}/api/user/${userId}`;
+      }
+      
+      const res = await fetch(endpoint, {
         headers: { Authorization: `Bearer ${token}` },
       });
+      
       if (res.ok) {
         const data = await res.json();
         setProfileData({
           name: data.name || "Admin",
           avatar: data.avatar || "",
         });
+      } else {
+        // If API fails, use data from localStorage
+        setProfileData({
+          name: authUser?.name || "System Admin",
+          avatar: ""
+        });
       }
     } catch (err) {
       console.error("Error fetching admin profile:", err);
+      // Fallback to localStorage data on error
+      setProfileData({
+        name: authUser?.name || "System Admin",
+        avatar: ""
+      });
     }
   };
 

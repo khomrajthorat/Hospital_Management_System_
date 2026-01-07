@@ -100,24 +100,19 @@ export default function PatientBills({ sidebarCollapsed, toggleSidebar }) {
 
   const handleFilter = (key, val) => setFilters(prev => ({ ...prev, [key]: val }));
 
-// --- SECURE PDF HANDLER ---
+  // Handle PDF Function
   const handlePdf = async (id) => {
     try {
-      // 1. Request PDF using Axios (Token hidden in headers)
-      const res = await axios.get(`${API_BASE}/bills/${id}/pdf`, {
-        headers: { Authorization: `Bearer ${localStorage.getItem("token")}` },
-        responseType: "blob", // <--- CRITICAL: Tells axios this is a file, not JSON
+      const token = localStorage.getItem("token");
+      const response = await api.get(`/bills/${id}/pdf`, {
+        headers: { Authorization: `Bearer ${token}` },
+        responseType: 'blob'
       });
-
-      // 2. Create a temporary secure URL for the file
-      const blob = new Blob([res.data], { type: "application/pdf" });
+      const blob = new Blob([response.data], { type: 'application/pdf' });
       const url = window.URL.createObjectURL(blob);
-
-      // 3. Open the file in a new tab
-      window.open(url, "_blank");
+      window.open(url, '_blank');
     } catch (err) {
-      console.error("PDF Error:", err);
-      alert("Failed to load PDF. Please check your connection or login again.");
+      console.error("Error generating PDF:", err);
     }
   };
 
