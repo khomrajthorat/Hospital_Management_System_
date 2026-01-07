@@ -133,7 +133,8 @@ export default function PatientAppointments() {
 
   // Cancel / delete appointment
   const handleCancel = async (id) => {
-    if (!window.confirm("Cancel this appointment?")) return;
+    const confirmed = await window.confirm("Cancel this appointment?");
+    if (!confirmed) return;
     try {
       await axios.put(
         `${API_BASE}/appointments/${id}/cancel`,
