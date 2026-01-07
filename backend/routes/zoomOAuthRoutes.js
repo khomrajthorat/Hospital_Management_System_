@@ -8,7 +8,8 @@ const logger = require("../utils/logger");
 // Zoom OAuth Configuration
 const ZOOM_CLIENT_ID = process.env.ZOOM_CLIENT_ID;
 const ZOOM_CLIENT_SECRET = process.env.ZOOM_CLIENT_SECRET;
-const ZOOM_REDIRECT_URI = process.env.ZOOM_REDIRECT_URI || `${process.env.BACKEND_URL || 'http://localhost:3001'}/api/auth/zoom/doctor/callback`;
+const ZOOM_REDIRECT_URI = process.env.ZOOM_REDIRECT_URI || `${process.env.BACKEND_URL}/api/auth/zoom/doctor/callback`;
+const FRONTEND_URL = process.env.FRONTEND_URL;
 
 // ==========================================
 // GET OAuth URL for Doctor
@@ -37,7 +38,7 @@ router.get("/callback", async (req, res) => {
     const { code, state } = req.query;
     
     if (!code || !state) {
-      return res.redirect(`${process.env.FRONTEND_URL}/doctor/settings/zoom?error=missing_params`);
+      return res.redirect(`${FRONTEND_URL}/doctor/settings/zoom?error=missing_params`);
     }
     
     // Decode state to get doctorId
@@ -45,7 +46,7 @@ router.get("/callback", async (req, res) => {
     try {
       stateData = JSON.parse(Buffer.from(state, 'base64').toString());
     } catch (e) {
-      return res.redirect(`${process.env.FRONTEND_URL}/doctor/settings/zoom?error=invalid_state`);
+      return res.redirect(`${FRONTEND_URL}/doctor/settings/zoom?error=invalid_state`);
     }
     
     const { doctorId } = stateData;
@@ -88,10 +89,10 @@ router.get("/callback", async (req, res) => {
     logger.info("Doctor connected Zoom account", { doctorId, accountId });
     
     // Redirect back to settings with success
-    res.redirect(`${process.env.FRONTEND_URL}/doctor/settings/zoom?success=true`);
+    res.redirect(`${FRONTEND_URL}/doctor/settings/zoom?success=true`);
   } catch (err) {
     logger.error("Zoom OAuth callback error", { error: err.message, details: err.response?.data });
-    res.redirect(`${process.env.FRONTEND_URL}/doctor/settings/zoom?error=oauth_failed`);
+    res.redirect(`${FRONTEND_URL}/doctor/settings/zoom?error=oauth_failed`);
   }
 });
 
