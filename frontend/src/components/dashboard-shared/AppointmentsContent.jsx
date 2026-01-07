@@ -9,10 +9,9 @@ import ConfirmationModal from "../ConfirmationModal";
 
 import API_BASE from "../../config";
 
-// Import the appointments CSS for collapsible panels styling
-import "../../admin-dashboard/styles/appointments.css";
-// Import admin-shared CSS for the blue header bar (services-topbar) styling
-import "../../admin-dashboard/styles/admin-shared.css";
+// Import shared CSS for component styling
+import "../../shared/styles/shared-components.css";
+import "../../shared/styles/shared-tables.css";
 
 const AppointmentsContent = ({ basePath = "/admin", sidebarCollapsed }) => {
   const navigate = useNavigate();
