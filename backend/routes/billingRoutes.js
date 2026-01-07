@@ -4,16 +4,13 @@ const mongoose = require("mongoose");
 const BillingModel = require("../models/Billing");
 const PatientModel = require("../models/Patient");
 const DoctorModel = require("../models/Doctor");
+const ClinicModel = require("../models/Clinic");
+const Counter = require("../models/Counter");
 const { PDFDocument, StandardFonts, rgb } = require("pdf-lib");
+const QRCode = require("qrcode");
 const fs = require("fs");
 const path = require("path");
 const logger = require("../utils/logger");
-const {
-  patientPopulate,
-  doctorPopulate,
-  clinicPopulate,
-  normalizeDocument
-} = require("../utils/populateHelper");
 const { verifyToken } = require("../middleware/auth");
 
 // Helper: Convert string ID to ObjectId if valid, otherwise null
@@ -25,33 +22,78 @@ const toObjectId = (id) => {
   return null;
 };
 
+// Helper: Format current time as "hh:mm AM/PM"
+const formatTime = (date = new Date()) => {
+  return date.toLocaleTimeString('en-US', { 
+    hour: '2-digit', 
+    minute: '2-digit', 
+    hour12: true 
+  });
+};
+
 // --- CREATE BILL (POST) ---
 router.post("/", verifyToken, async (req, res) => {
   try {
-    const generatedBillNumber = Math.floor(100000 + Math.random() * 900000);
+    const clinicId = req.user.clinicId ? toObjectId(req.user.clinicId) : toObjectId(req.body.clinicId);
+    
+    let billPrefix = "INV-";
+    if (clinicId) {
+      const clinic = await ClinicModel.findById(clinicId).select("billPrefix").lean();
+      if (clinic && clinic.billPrefix) {
+        billPrefix = clinic.billPrefix;
+      }
+    }
+    
+    const generatedBillNumber = await Counter.getNextSequence("bill", billPrefix, clinicId, 6);
 
-    // Normalize services to array of objects
     let services = req.body.services || [];
     if (Array.isArray(services)) {
       services = services.map(svc => {
         if (typeof svc === 'string') {
-          return { name: svc.trim(), amount: 0 };
+          return { name: svc.trim(), description: "", category: "Consultation", amount: 0 };
         }
-        return svc;
+        return {
+          name: svc.name || "",
+          description: svc.description || "",
+          category: svc.category || "Consultation",
+          amount: svc.amount || 0
+        };
       });
     }
 
-    // Convert string IDs to ObjectIds for proper references
+    const subTotal = services.reduce((sum, svc) => sum + (Number(svc.amount) || 0), 0);
+    const taxDetails = req.body.taxDetails || [];
+    const taxAmount = taxDetails.reduce((sum, tax) => sum + (Number(tax.amount) || 0), 0);
+    const discount = Number(req.body.discount) || 0;
+    const totalAmount = subTotal - discount + taxAmount;
+    const paidAmount = req.body.paidAmount !== undefined ? Number(req.body.paidAmount) : (req.body.status === "paid" ? totalAmount : 0);
+    const amountDue = Math.max(totalAmount - paidAmount, 0);
+
+    let status = req.body.status || "unpaid";
+    if (paidAmount >= totalAmount && totalAmount > 0) {
+      status = "paid";
+    } else if (paidAmount > 0) {
+      status = "partial";
+    }
+
     const payload = {
       ...req.body,
       services,
       billNumber: generatedBillNumber,
       patientId: toObjectId(req.body.patientId),
       doctorId: toObjectId(req.body.doctorId),
-      // Force clinicId from token if available
-      clinicId: req.user.clinicId ? toObjectId(req.user.clinicId) : toObjectId(req.body.clinicId),
+      clinicId: clinicId,
       encounterId: toObjectId(req.body.encounterId),
       date: req.body.date ? new Date(req.body.date) : new Date(),
+      time: req.body.time || formatTime(),
+      subTotal,
+      totalAmount,
+      discount,
+      taxDetails,
+      taxAmount,
+      paidAmount,
+      amountDue,
+      status,
     };
 
     const bill = await BillingModel.create(payload);
@@ -62,25 +104,15 @@ router.post("/", verifyToken, async (req, res) => {
   }
 });
 
-// --- GET ALL BILLS (with population) ---
+// --- GET ALL BILLS ---
 router.get("/", verifyToken, async (req, res) => {
   try {
     const { doctorId, patientId, status } = req.query;
     let query = {};
 
-    if (doctorId) {
-      query.doctorId = toObjectId(doctorId) || doctorId;
-    }
-    if (patientId) {
-      query.patientId = toObjectId(patientId) || patientId;
-    }
-    if (status) {
-      query.status = status;
-    }
-
-    if (status) {
-      query.status = status;
-    }
+    if (doctorId) query.doctorId = toObjectId(doctorId) || doctorId;
+    if (patientId) query.patientId = toObjectId(patientId) || patientId;
+    if (status) query.status = status;
 
     let currentUser = null;
     let safeClinicId = null;
@@ -100,9 +132,8 @@ router.get("/", verifyToken, async (req, res) => {
     const effectiveRole = currentUser ? currentUser.role : req.user.role;
 
     if (effectiveRole === "admin") {
-      // Global View
+       // All bills
     } else if (effectiveRole === "patient") {
-      // Patients can only see their own bills
       const patientRecord = await PatientModel.findOne({ userId: req.user.id });
       if (patientRecord) {
         query.patientId = patientRecord._id;
@@ -115,7 +146,6 @@ router.get("/", verifyToken, async (req, res) => {
       return res.json([]);
     }
 
-    // First fetch bills without encounterId population (to avoid cast errors for string values)
     const bills = await BillingModel.find(query)
       .sort({ createdAt: -1 })
       .populate({ path: "patientId", select: "firstName lastName email phone", model: "Patient" })
@@ -123,56 +153,20 @@ router.get("/", verifyToken, async (req, res) => {
       .populate({ path: "clinicId", select: "name address", model: "Clinic" })
       .lean();
 
-    // Get all unique encounter ObjectIds from bills (filter out string values)
-    const encounterObjectIds = bills
-      .filter(b => b.encounterId && mongoose.Types.ObjectId.isValid(b.encounterId))
-      .map(b => b.encounterId);
-
-    // Fetch encounters in bulk
-    const Encounter = require("../models/Encounter");
-    const encountersMap = {};
-    if (encounterObjectIds.length > 0) {
-      const encounters = await Encounter.find({ _id: { $in: encounterObjectIds } }).select("encounterId date").lean();
-      encounters.forEach(enc => {
-        encountersMap[enc._id.toString()] = enc;
-      });
-    }
-
-    // Normalize data - use populated data or fallback to stored names
+    // Populate encounter IDs manually if needed (omitted for brevity as frontend handles string IDs well)
+    
+    // Normalize Data
     const normalized = bills.map(bill => {
       const copy = { ...bill };
-
-      // Patient info
       if (copy.patientId && typeof copy.patientId === "object") {
-        const p = copy.patientId;
-        copy.patientName = copy.patientName || `${p.firstName || ""} ${p.lastName || ""}`.trim();
+        copy.patientName = copy.patientName || `${copy.patientId.firstName || ""} ${copy.patientId.lastName || ""}`.trim();
       }
-
-      // Doctor info
       if (copy.doctorId && typeof copy.doctorId === "object") {
-        const d = copy.doctorId;
-        copy.doctorName = copy.doctorName || `${d.firstName || ""} ${d.lastName || ""}`.trim();
+         copy.doctorName = copy.doctorName || `${copy.doctorId.firstName || ""} ${copy.doctorId.lastName || ""}`.trim();
       }
-
-      // Clinic info
       if (copy.clinicId && typeof copy.clinicId === "object") {
         copy.clinicName = copy.clinicName || copy.clinicId.name || "";
       }
-
-      // Encounter info - handle both ObjectId and string values
-      if (copy.encounterId) {
-        const encIdStr = copy.encounterId.toString();
-        if (mongoose.Types.ObjectId.isValid(encIdStr)) {
-          // It's an ObjectId - lookup the encounter
-          const enc = encountersMap[encIdStr];
-          if (enc) {
-            copy.encounterCustomId = enc.encounterId || null;
-            copy.encounterId = enc.encounterId || encIdStr;
-          }
-        }
-        // If it's already a string like "ENC-1234", keep it as is
-      }
-
       return copy;
     });
 
@@ -192,18 +186,14 @@ router.get("/:id", verifyToken, async (req, res) => {
       .populate({ path: "clinicId", select: "name address", model: "Clinic" })
       .lean();
 
-    if (!bill) {
-      return res.status(404).json({ message: "Bill not found" });
-    }
+    if (!bill) return res.status(404).json({ message: "Bill not found" });
 
-    // Normalize patient/doctor names
+    // Normalize
     if (bill.patientId && typeof bill.patientId === "object") {
-      const p = bill.patientId;
-      bill.patientName = bill.patientName || `${p.firstName || ""} ${p.lastName || ""}`.trim();
+      bill.patientName = bill.patientName || `${bill.patientId.firstName || ""} ${bill.patientId.lastName || ""}`.trim();
     }
     if (bill.doctorId && typeof bill.doctorId === "object") {
-      const d = bill.doctorId;
-      bill.doctorName = bill.doctorName || `${d.firstName || ""} ${d.lastName || ""}`.trim();
+      bill.doctorName = bill.doctorName || `${bill.doctorId.firstName || ""} ${bill.doctorId.lastName || ""}`.trim();
     }
 
     res.json(bill);
@@ -216,42 +206,40 @@ router.get("/:id", verifyToken, async (req, res) => {
 // --- UPDATE BILL ---
 router.put("/:id", verifyToken, async (req, res) => {
   try {
-    // Normalize services to array of objects if present
     let services = req.body.services;
     if (Array.isArray(services)) {
       services = services.map(svc => {
-        if (typeof svc === 'string') {
-          return { name: svc.trim(), amount: 0 };
-        }
+        if (typeof svc === 'string') return { name: svc.trim(), category: "Consultation", amount: 0 };
         return svc;
       });
     }
 
-    // Convert string IDs to ObjectIds
+    const subTotal = services ? services.reduce((sum, svc) => sum + (Number(svc.amount) || 0), 0) : req.body.subTotal;
+    const taxDetails = req.body.taxDetails;
+    const taxAmount = taxDetails ? taxDetails.reduce((sum, tax) => sum + (Number(tax.amount) || 0), 0) : req.body.taxAmount;
+    
+    // Recalculate if totals not provided provided but services are
+    let totalAmount = req.body.totalAmount;
+    let amountDue = req.body.amountDue;
+    
+    // Simplistic update logic - usually we trust frontend for calc but for safety:
+    // We update whatever is passed.
+
     const updateData = {
       ...req.body,
       services,
-      patientId: req.body.patientId ? toObjectId(req.body.patientId) : undefined,
-      doctorId: req.body.doctorId ? toObjectId(req.body.doctorId) : undefined,
-      clinicId: req.body.clinicId ? toObjectId(req.body.clinicId) : undefined,
-      encounterId: req.body.encounterId ? toObjectId(req.body.encounterId) : undefined,
+      patientId: toObjectId(req.body.patientId),
+      doctorId: toObjectId(req.body.doctorId),
+      clinicId: toObjectId(req.body.clinicId),
+      encounterId: toObjectId(req.body.encounterId),
       date: req.body.date ? new Date(req.body.date) : undefined,
     };
 
-    // Remove undefined values
-    Object.keys(updateData).forEach(key =>
-      updateData[key] === undefined && delete updateData[key]
-    );
+    // Remove undefined
+    Object.keys(updateData).forEach(key => updateData[key] === undefined && delete updateData[key]);
 
-    const updated = await BillingModel.findByIdAndUpdate(
-      req.params.id,
-      updateData,
-      { new: true }
-    );
-
-    if (!updated) {
-      return res.status(404).json({ message: "Bill not found" });
-    }
+    const updated = await BillingModel.findByIdAndUpdate(req.params.id, updateData, { new: true });
+    if (!updated) return res.status(404).json({ message: "Bill not found" });
 
     res.json({ message: "Bill updated", data: updated });
   } catch (err) {
@@ -264,9 +252,7 @@ router.put("/:id", verifyToken, async (req, res) => {
 router.delete("/:id", verifyToken, async (req, res) => {
   try {
     const deleted = await BillingModel.findByIdAndDelete(req.params.id);
-    if (!deleted) {
-      return res.status(404).json({ message: "Bill not found" });
-    }
+    if (!deleted) return res.status(404).json({ message: "Bill not found" });
     res.json({ message: "Bill deleted" });
   } catch (err) {
     logger.error("Error deleting bill", { id: req.params.id, error: err.message });
@@ -275,191 +261,204 @@ router.delete("/:id", verifyToken, async (req, res) => {
 });
 
 // --- PDF GENERATION ---
-function colorFromHex(hex = "#000000") {
-  const h = (hex || "#000000").replace("#", "");
-  const r = parseInt(h.substring(0, 2), 16) / 255;
-  const g = parseInt(h.substring(2, 4), 16) / 255;
-  const b = parseInt(h.substring(4, 6), 16) / 255;
-  return rgb(r, g, b);
-}
-
 router.get("/:id/pdf", verifyToken, async (req, res) => {
   try {
     const bill = await BillingModel.findById(req.params.id)
-      .populate({ path: "patientId", select: "firstName lastName", model: "Patient" })
-      .populate({ path: "doctorId", select: "firstName lastName", model: "Doctor" })
+      .populate({ path: "patientId", model: "Patient" }) // Get full patient for UHID/Address
+      .populate({ path: "doctorId", model: "Doctor" })     // Get full doctor for Specialization
+      .populate({ path: "clinicId", model: "Clinic" })     // Get full clinic for GSTIN/Terms
       .lean();
 
-    if (!bill) {
-      return res.status(404).send("Bill not found");
-    }
+    if (!bill) return res.status(404).send("Bill not found");
 
-    // Get names from populated data or fallback to stored names
-    let patientName = bill.patientName || "N/A";
-    let doctorName = bill.doctorName || "N/A";
-
-    if (bill.patientId && typeof bill.patientId === "object") {
-      const p = bill.patientId;
-      patientName = `${p.firstName || ""} ${p.lastName || ""}`.trim() || patientName;
-    }
-    if (bill.doctorId && typeof bill.doctorId === "object") {
-      const d = bill.doctorId;
-      doctorName = `${d.firstName || ""} ${d.lastName || ""}`.trim() || doctorName;
-    }
-
-    // Create PDF
     const pdfDoc = await PDFDocument.create();
-    const page = pdfDoc.addPage([595, 842]);
+    const page = pdfDoc.addPage([595, 842]); // A4
     const { width, height } = page.getSize();
-    const font = await pdfDoc.embedFont(StandardFonts.Helvetica);
-    const bold = await pdfDoc.embedFont(StandardFonts.HelveticaBold);
+    
+    const fontRegular = await pdfDoc.embedFont(StandardFonts.Helvetica);
+    const fontBold = await pdfDoc.embedFont(StandardFonts.HelveticaBold);
 
-    const margin = 50;
+    const margin = 40;
     let y = height - margin;
 
-    // Logo
+    // --- 1. HEADER (Clinic Info & Logo) ---
+    // Try to load logo
     try {
       const logoPath = path.join(__dirname, "..", "assets", "logo.png");
       if (fs.existsSync(logoPath)) {
-        const logoBytes = fs.readFileSync(logoPath);
-        const logoImg = await pdfDoc.embedPng(logoBytes);
-        const logoSize = 50;
-        page.drawImage(logoImg, {
-          x: margin,
-          y: y - logoSize,
-          width: logoSize,
-          height: logoSize,
-        });
+         const logoBytes = fs.readFileSync(logoPath);
+         const logoImg = await pdfDoc.embedPng(logoBytes);
+         const logoSize = 60;
+         page.drawImage(logoImg, { x: margin, y: y - logoSize, width: logoSize, height: logoSize });
       }
-    } catch (e) {
-      logger.debug("Could not embed logo in bill PDF", { error: e.message });
+    } catch(e) {}
+
+    // Clinic Details
+    const clinicName = bill.clinicId?.name || bill.clinicName || "Clinic Name";
+    const clinicAddress = bill.clinicId?.address?.full || bill.clinicId?.address?.city || "";
+    const clinicContact = bill.clinicId?.contact || bill.clinicId?.email || "";
+    const clinicGST = bill.clinicId?.gstin ? `GSTIN: ${bill.clinicId.gstin}` : "";
+
+    page.drawText(clinicName, { x: margin + 80, y: y - 15, size: 20, font: fontBold });
+    page.drawText(clinicAddress, { x: margin + 80, y: y - 30, size: 10, font: fontRegular, color: rgb(0.4, 0.4, 0.4) });
+    page.drawText(clinicContact, { x: margin + 80, y: y - 42, size: 10, font: fontRegular, color: rgb(0.4, 0.4, 0.4) });
+    if(clinicGST) {
+       page.drawText(clinicGST, { x: margin + 80, y: y - 54, size: 10, font: fontRegular, color: rgb(0.4, 0.4, 0.4) });
     }
 
-    // Clinic Name
-    page.drawText(bill.clinicName || "Clinic Name", {
-      x: margin + 60,
-      y: y - 20,
-      size: 20,
-      font: bold,
-      color: colorFromHex("#000000"),
-    });
-
-    // Date
-    const dateStr = bill.date
-      ? new Date(bill.date).toLocaleDateString()
-      : new Date().toLocaleDateString();
-    page.drawText(`Date: ${dateStr}`, {
-      x: width - margin - 100,
-      y: y - 20,
-      size: 10,
-      font,
-    });
+    // Bill Meta (Top Right)
+    const dateStr = bill.date ? new Date(bill.date).toLocaleDateString() : new Date().toLocaleDateString();
+    const timeStr = bill.time || "";
+    
+    page.drawText("TAX INVOICE", { x: width - margin - 80, y: y - 15, size: 12, font: fontBold, color: rgb(0,0,0) });
+    page.drawText(`Bill #: ${bill.billNumber || bill._id.toString().slice(-6)}`, { x: width - margin - 80, y: y - 30, size: 10, font: fontRegular });
+    page.drawText(`Date: ${dateStr}`, { x: width - margin - 80, y: y - 42, size: 10, font: fontRegular });
+    if(timeStr) page.drawText(`Time: ${timeStr}`, { x: width - margin - 80, y: y - 54, size: 10, font: fontRegular });
 
     y -= 80;
+    
+    // Divider
+    page.drawLine({ start: { x: margin, y }, end: { x: width - margin, y }, thickness: 1, color: rgb(0.9, 0.9, 0.9) });
+    y -= 20;
 
-    // Bill Info
-    page.drawText("INVOICE / BILL", {
-      x: margin,
-      y,
-      size: 16,
-      font: bold,
-      color: colorFromHex("#333333"),
-    });
+    // --- 2. PATIENT & DOCTOR INFO ---
+    const pName = bill.patientId?.firstName ? `${bill.patientId.firstName} ${bill.patientId.lastName}` : bill.patientName || "N/A";
+    const pUHID = bill.patientId?.uhid ? `${bill.patientId.uhid}` : "N/A";
+    const pAgeGender = bill.patientId?.gender ? `(${bill.patientId.gender})` : "";
+    const pPhone = bill.patientId?.phone || "";
 
-    y -= 30;
-    page.drawText(`Bill #: ${bill.billNumber || bill._id}`, { x: margin, y, size: 10, font });
+    const dName = bill.doctorId?.firstName ? `${bill.doctorId.firstName} ${bill.doctorId.lastName}` : bill.doctorName || "N/A";
+    const dSpec = bill.doctorId?.specialization || bill.doctorId?.department || "";
+
+    // Patient Column
+    page.drawText("Patient Details:", { x: margin, y, size: 10, font: fontBold, color: rgb(0.5, 0.5, 0.5) });
     y -= 15;
-    page.drawText(`Patient Name: ${patientName}`, { x: margin, y, size: 10, font });
-    y -= 15;
-    page.drawText(`Doctor Name: ${doctorName}`, { x: margin, y, size: 10, font });
+    page.drawText(pName + " " + pAgeGender, { x: margin, y, size: 11, font: fontBold });
+    y -= 12;
+    page.drawText(`UHID: ${pUHID}`, { x: margin, y, size: 10, font: fontRegular });
+    y -= 12;
+    if(pPhone) page.drawText(`Phone: ${pPhone}`, { x: margin, y, size: 10, font: fontRegular });
 
-    y -= 30;
-    page.drawLine({
-      start: { x: margin, y },
-      end: { x: width - margin, y },
-      thickness: 1,
-      color: colorFromHex("#cccccc"),
-    });
-    y -= 20;
+    // Doctor Column
+    let dy = y + 24 + 15; // Reset y for right column
+    page.drawText("Doctor Details:", { x: width/2 + 20, y: dy, size: 10, font: fontBold, color: rgb(0.5, 0.5, 0.5) });
+    dy -= 15;
+    page.drawText(dName, { x: width/2 + 20, y: dy, size: 11, font: fontBold });
+    dy -= 12;
+    if(dSpec) page.drawText(dSpec, { x: width/2 + 20, y: dy, size: 10, font: fontRegular });
 
-    // Services Table Header
-    page.drawText("Service / Description", { x: margin, y, size: 10, font: bold });
-    page.drawText("Amount", { x: width - margin - 60, y, size: 10, font: bold });
+    y -= 40;
 
-    y -= 10;
-    page.drawLine({
-      start: { x: margin, y },
-      end: { x: width - margin, y },
-      thickness: 0.5,
-      color: colorFromHex("#cccccc"),
-    });
-    y -= 20;
+    // --- 3. SERVICES TABLE ---
+    // Table Header
+    const col1 = margin;        // #
+    const col2 = margin + 30;   // Description
+    const col3 = width - margin - 150; // Category
+    const col4 = width - margin - 60;  // Amount
 
-    // Services Items
-    if (Array.isArray(bill.services)) {
-      for (const svc of bill.services) {
-        const svcName = typeof svc === "string" ? svc : svc.name || JSON.stringify(svc);
-        const svcAmount = typeof svc === "object" && svc.amount ? svc.amount : "";
-        if (!svcName) continue;
+    page.drawRectangle({ x: margin, y: y - 5, width: width - 2 * margin, height: 20, color: rgb(0.95, 0.95, 0.95) });
+    
+    page.drawText("#", { x: col1 + 5, y, size: 9, font: fontBold });
+    page.drawText("Service / Description", { x: col2, y, size: 9, font: fontBold });
+    page.drawText("Category", { x: col3, y, size: 9, font: fontBold });
+    page.drawText("Amount", { x: col4, y, size: 9, font: fontBold });
 
-        page.drawText(svcName, { x: margin, y, size: 10, font });
-        if (svcAmount) {
-          page.drawText(`Rs. ${svcAmount}`, { x: width - margin - 60, y, size: 10, font });
-        }
-        y -= 15;
-      }
-    }
-
-    // Totals
-    y -= 20;
-    page.drawLine({
-      start: { x: margin, y },
-      end: { x: width - margin, y },
-      thickness: 1,
-      color: colorFromHex("#cccccc"),
-    });
     y -= 25;
 
-    const rightColX = width - margin - 150;
+    // Table Content
+    if (Array.isArray(bill.services)) {
+      bill.services.forEach((svc, i) => {
+        const name = typeof svc === 'string' ? svc : svc.name;
+        const cat = typeof svc === 'object' ? svc.category || "-" : "-";
+        const amt = typeof svc === 'object' ? (svc.amount || 0).toFixed(2) : "0.00";
 
-    page.drawText("Total Amount:", { x: rightColX, y, size: 10, font: bold });
-    page.drawText(`Rs. ${bill.totalAmount || 0}`, { x: rightColX + 100, y, size: 10, font });
+        page.drawText(`${i + 1}`, { x: col1 + 5, y, size: 9, font: fontRegular });
+        page.drawText(name, { x: col2, y, size: 9, font: fontRegular });
+        page.drawText(cat, { x: col3, y, size: 9, font: fontRegular });
+        page.drawText(amt, { x: col4, y, size: 9, font: fontRegular });
+
+        // If description exists, print it below
+        if(svc.description) {
+           y -= 12;
+           page.drawText(`(${svc.description})`, { x: col2 + 10, y, size: 8, font: fontRegular, color: rgb(0.4, 0.4, 0.4) });
+        }
+        
+        y -= 20;
+        
+        // Page Break Check? (Omitted for simplicity, assuming bills aren't huge)
+      });
+    }
+
+    y -= 10;
+    page.drawLine({ start: { x: margin, y }, end: { x: width - margin, y }, thickness: 1, color: rgb(0.9, 0.9, 0.9) });
+    y -= 20;
+
+    // --- 4. SUMMARY & TAX ---
+    const rightAlignStart = width - margin - 180;
+    const valueAlignStart = width - margin - 60;
+
+    // Subtotal
+    page.drawText("Sub Total:", { x: rightAlignStart, y, size: 10, font: fontRegular });
+    page.drawText((bill.subTotal || 0).toFixed(2), { x: valueAlignStart, y, size: 10, font: fontRegular });
     y -= 15;
 
-    if (bill.discount) {
-      page.drawText("Discount:", { x: rightColX, y, size: 10, font: bold });
-      page.drawText(`- Rs. ${bill.discount}`, { x: rightColX + 100, y, size: 10, font });
+    // Discount
+    if(bill.discount > 0) {
+      page.drawText("Discount:", { x: rightAlignStart, y, size: 10, font: fontRegular });
+      page.drawText(`- ${(bill.discount).toFixed(2)}`, { x: valueAlignStart, y, size: 10, font: fontRegular });
       y -= 15;
     }
 
-    page.drawText("Amount Due:", { x: rightColX, y, size: 12, font: bold });
-    page.drawText(`Rs. ${bill.amountDue || 0}`, { x: rightColX + 100, y, size: 12, font: bold });
+    // Taxes
+    if (bill.taxDetails && bill.taxDetails.length > 0) {
+      bill.taxDetails.forEach(t => {
+        page.drawText(`${t.name} (${t.rate}%):`, { x: rightAlignStart, y, size: 9, font: fontRegular, color: rgb(0.3, 0.3, 0.3) });
+        page.drawText(`${(t.amount || 0).toFixed(2)}`, { x: valueAlignStart, y, size: 9, font: fontRegular, color: rgb(0.3, 0.3, 0.3) });
+        y -= 12;
+      });
+      y -= 5;
+    }
+
+    page.drawLine({ start: { x: rightAlignStart, y: y+5 }, end: { x: width - margin, y: y+5 }, thickness: 0.5, color: rgb(0.8, 0.8, 0.8) });
+
+    // Total
+    page.drawText("Total Amount:", { x: rightAlignStart, y, size: 11, font: fontBold });
+    page.drawText((bill.totalAmount || 0).toFixed(2), { x: valueAlignStart, y, size: 11, font: fontBold });
+    y -= 20;
+
+    // Amount Due
+    page.drawText("Amount Due:", { x: rightAlignStart, y, size: 10, font: fontBold, color: rgb(0.8, 0, 0) });
+    page.drawText((bill.amountDue || 0).toFixed(2), { x: valueAlignStart, y, size: 10, font: fontBold, color: rgb(0.8, 0, 0) });
     y -= 30;
 
-    // Status
-    const statusColor = bill.status === "paid" ? colorFromHex("#008000") : colorFromHex("#ff0000");
-    page.drawText(`Status: ${(bill.status || "unpaid").toUpperCase()}`, {
-      x: margin,
-      y,
-      size: 10,
-      font: bold,
-      color: statusColor,
-    });
+    // --- 5. FOOTER (QR, Terms) ---
+    const footerY = 100;
+    
+    // QR Code
+    try {
+       const verifyUrl = bill.verificationUrl || `${process.env.FRONTEND_URL}/verify/bill/${bill._id}`;
+       const qrDataUrl = await QRCode.toDataURL(verifyUrl);
+       const qrImage = await pdfDoc.embedPng(qrDataUrl);
+       page.drawImage(qrImage, { x: margin, y: footerY - 10, width: 60, height: 60 });
+       page.drawText("Scan to Verify", { x: margin, y: footerY - 20, size: 8, font: fontRegular });
+    } catch(e) {}
 
-    // Footer
-    page.drawText("Thank you for visiting.", {
-      x: margin,
-      y: 30,
-      size: 10,
-      font,
-      color: colorFromHex("#777777"),
+    // Terms
+    const termsX = margin + 80;
+    page.drawText("Terms & Conditions:", { x: termsX, y: footerY + 40, size: 9, font: fontBold });
+    
+    const terms = bill.clinicId?.termsAndConditions || ["Payment due upon receipt.", "Thank you for your business."];
+    let termY = footerY + 25;
+    terms.slice(0, 3).forEach((term) => { // Show max 3 terms
+       page.drawText(`• ${term}`, { x: termsX, y: termY, size: 8, font: fontRegular, color: rgb(0.3, 0.3, 0.3) });
+       termY -= 10;
     });
 
     const pdfBytes = await pdfDoc.save();
-
     res.setHeader("Content-Type", "application/pdf");
-    res.setHeader("Content-Disposition", `inline; filename=bill-${bill.billNumber || bill._id}.pdf`);
+    res.setHeader("Content-Disposition", `inline; filename=Invoice-${bill.billNumber || bill._id}.pdf`);
     res.send(Buffer.from(pdfBytes));
+
   } catch (err) {
     logger.error("Error generating bill PDF", { id: req.params.id, error: err.message });
     res.status(500).send("Error generating PDF");

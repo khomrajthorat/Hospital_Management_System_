@@ -254,28 +254,28 @@ exports.updateClinic = async (req, res) => {
 
     const parsedSpecialties = specialties ? JSON.parse(specialties) : [];
 
-    clinic.name = name;
-    clinic.email = email;
-    clinic.contact = contact;
-    clinic.specialties = parsedSpecialties;
+    clinic.name = name || clinic.name;
+    clinic.email = email || clinic.email;
+    clinic.contact = contact || clinic.contact;
+    clinic.specialties = specialties ? parsedSpecialties : clinic.specialties;
     clinic.status = status || clinic.status;
 
     if (clinicLogo) clinic.clinicLogo = clinicLogo;
 
     clinic.address = {
-      full: address,
-      city,
-      country,
-      postalCode,
+      full: address || clinic.address.full,
+      city: city || clinic.address.city,
+      country: country || clinic.address.country,
+      postalCode: postalCode || clinic.address.postalCode,
     };
 
     clinic.admin = {
-      firstName: adminFirstName,
-      lastName: adminLastName,
-      email: adminEmail,
-      contact: adminContact,
-      dob,
-      gender,
+      firstName: adminFirstName || clinic.admin.firstName,
+      lastName: adminLastName || clinic.admin.lastName,
+      email: adminEmail || clinic.admin.email,
+      contact: adminContact || clinic.admin.contact,
+      dob: dob || clinic.admin.dob,
+      gender: gender || clinic.admin.gender,
       photo: adminPhoto || clinic.admin.photo,
     };
 
