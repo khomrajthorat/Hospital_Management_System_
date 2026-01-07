@@ -1,13 +1,14 @@
-// src/receptionist-dashboard/layouts/ReceptionistLayout.jsx
 import React, { useState } from "react";
 import { Outlet } from "react-router-dom";
 import ReceptionistNavbar from "../components/Navbar";
 import ReceptionistSidebar from "../components/Sidebar";
-import PageTransition from "../../components/PageTransition"; 
-// Make sure to import the new Modern CSS we created
-import "../styles/ReceptionistModern.css"; 
+import PageTransition from "../../components/PageTransition";
 
-const ReceptionLayout = () => {
+// Import the specific CSS for this layout
+import "../styles/ReceptionistLayout.css";
+
+const ReceptionistLayout = () => {
+  // State to manage sidebar collapsed/expanded
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
 
   const toggleSidebar = () => {
@@ -15,26 +16,29 @@ const ReceptionLayout = () => {
   };
 
   return (
-    <div className="receptionist-layout">
-      {/* Navbar (Includes Profile & Notification Logic) */}
-      <ReceptionistNavbar toggleSidebar={toggleSidebar} />
+    <div className="reception-layout-wrapper">
+      
+      {/* 1. Sidebar Container */}
+      <div className={`layout-sidebar ${sidebarCollapsed ? 'collapsed' : ''}`}>
+        <ReceptionistSidebar collapsed={sidebarCollapsed} />
+      </div>
 
-      {/* Sidebar (Includes Navigation Links) */}
-      <ReceptionistSidebar collapsed={sidebarCollapsed} />
+      {/* 2. Main Content Wrapper */}
+      <div className={`layout-main ${sidebarCollapsed ? 'collapsed' : ''}`}>
+        
+        {/* Navbar sits at the top of the main content area */}
+        <ReceptionistNavbar toggleSidebar={toggleSidebar} />
 
-      {/* Main Content Area */}
-      <main 
-        className={`receptionist-main-content ${sidebarCollapsed ? 'collapsed' : ''}`}
-      >
-        <div className="content-container">
-          {/* Keep your existing PageTransition wrapper */}
+        {/* Page Content */}
+        <div className="layout-content p-4">
           <PageTransition>
             <Outlet />
           </PageTransition>
         </div>
-      </main>
+      </div>
+
     </div>
   );
 };
 
-export default ReceptionLayout;
+export default ReceptionistLayout;

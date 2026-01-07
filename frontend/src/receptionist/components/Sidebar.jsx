@@ -1,43 +1,53 @@
 // src/receptionist-dashboard/components/ReceptionistSidebar.jsx
 import React, { useState } from "react";
 import { Collapse } from "react-bootstrap";
-import defaultLogo from "../images/Logo.png";
 import { IoMdSettings } from "react-icons/io";
 import {
   FaTachometerAlt,
   FaCalendarAlt,
   FaUserInjured,
-  FaPhone,
   FaClipboardList,
   FaChevronDown,
   FaCheckCircle,
   FaClock,
-  FaFileInvoice
+  FaFileInvoice,
+  FaListAlt,
+  FaUserMd, 
+  FaList, // Added for Services to match the screenshot
+  FaRegCalendarAlt 
 } from "react-icons/fa";
 import { NavLink } from "react-router-dom";
-import "../styles/ReceptionistModern.css";
 
-export default function ReceptionistSidebar({ collapsed = false }) {
+// Import Shared Modern Styles
+import "../../shared/styles/ModernUI.css";
+
+// Define or Import a default logo
+const defaultLogo = "https://via.placeholder.com/40"; 
+
+export default function Sidebar({ collapsed = false }) {
   const expandedWidth = 260;
-  const collapsedWidth = 72;
+  const collapsedWidth = 72; 
+  
+  // State for collapsible menus
   const [isAppointmentsOpen, setIsAppointmentsOpen] = useState(false);
   const [isPatientsOpen, setIsPatientsOpen] = useState(false);
+  const [isEncountersOpen, setIsEncountersOpen] = useState(false);
 
+  // Helper for active class based on ModernUI.css
   const linkClass = ({ isActive }) =>
-    `receptionist-nav-link ${isActive ? "active" : ""}`;
+    `modern-nav-link ${isActive ? "active" : ""}`;
 
   const authUser = JSON.parse(localStorage.getItem("authUser") || "{}");
   const receptionist = JSON.parse(localStorage.getItem("receptionist") || "{}");
-  const clinicName = authUser.clinic || receptionist.clinic || "Clinic";
+  const clinicName = authUser.clinicName || receptionist.clinic || "Clinic";
   const clinicLogo = authUser.clinicLogo || receptionist.clinicLogo;
 
-  // Construct the clinic logo URL from uploads folder if available
   const API_BASE = import.meta.env.VITE_API_URL || "http://localhost:5000";
   const logoSrc = clinicLogo ? `${API_BASE}/uploads/${clinicLogo}` : defaultLogo;
 
   return (
     <div
-      className="receptionist-sidebar d-flex flex-column vh-100"
+      className="modern-sidebar d-flex flex-column vh-100"
       style={{
         width: collapsed ? collapsedWidth : expandedWidth,
         position: "fixed",
@@ -47,37 +57,38 @@ export default function ReceptionistSidebar({ collapsed = false }) {
         transition: "width 200ms cubic-bezier(0.4, 0, 0.2, 1)",
         overflow: "hidden",
         zIndex: 1000,
-        marginTop: "70px" // Account for navbar height
+        marginTop: "64px" 
       }}
     >
-      {/* Logo / title */}
-      <div className="receptionist-sidebar-logo">
-        <img src={logoSrc} alt="Clinic Logo" style={{ borderRadius: 10 }} />
+      {/* Logo / Title */}
+      <div className="modern-sidebar-logo">
+        <img 
+          src={logoSrc} 
+          alt="Clinic Logo" 
+        />
         {!collapsed && <h4>{clinicName}</h4>}
       </div>
 
-      {/* Menu items */}
-      <ul className="receptionist-nav" style={{ overflowY: "auto", flex: 1 }}>
-        {/* Dashboard */}
-        <li className="receptionist-nav-item">
+      {/* Menu Items */}
+      <ul className="modern-nav" style={{ overflowY: "auto", flex: 1 }}>
+        
+        {/* 1. Dashboard */}
+        <li className="modern-nav-item">
           <NavLink to="/receptionist/dashboard" className={linkClass} end>
-            <span className="receptionist-nav-icon">
+            <span className="modern-nav-icon">
               <FaTachometerAlt />
             </span>
             {!collapsed && <span>Dashboard</span>}
           </NavLink>
         </li>
 
-        {/* Appointments with Submenu */}
-        <li className="receptionist-nav-item">
+        {/* 2. Appointments Dropdown */}
+        <li className="modern-nav-item">
           <div
-            className={`receptionist-nav-link receptionist-nav-toggle ${
-              isAppointmentsOpen ? "open" : ""
-            }`}
+            className={`modern-nav-link modern-nav-toggle ${isAppointmentsOpen ? "open" : ""}`}
             onClick={() => setIsAppointmentsOpen(!isAppointmentsOpen)}
-            style={{ cursor: "pointer" }}
           >
-            <span className="receptionist-nav-icon">
+            <span className="modern-nav-icon">
               <FaCalendarAlt />
             </span>
             {!collapsed && (
@@ -92,37 +103,22 @@ export default function ReceptionistSidebar({ collapsed = false }) {
 
           {!collapsed && (
             <Collapse in={isAppointmentsOpen}>
-              <ul className="receptionist-submenu">
-                <li className="receptionist-nav-item">
-                  <NavLink
-                    to="/receptionist/appointments"
-                    className={linkClass}
-                  >
-                    <span className="receptionist-nav-icon">
-                      <FaListAlt />
-                    </span>
+              <ul className="modern-submenu">
+                <li className="modern-nav-item">
+                  <NavLink to="/receptionist/appointments" className={linkClass}>
+                    <span className="modern-nav-icon"><FaListAlt /></span>
                     <span>All Appointments</span>
                   </NavLink>
                 </li>
-                <li className="receptionist-nav-item">
-                  <NavLink
-                    to="/receptionist/appointments-today"
-                    className={linkClass}
-                  >
-                    <span className="receptionist-nav-icon">
-                      <FaClock />
-                    </span>
+                <li className="modern-nav-item">
+                  <NavLink to="/receptionist/appointments-today" className={linkClass}>
+                    <span className="modern-nav-icon"><FaClock /></span>
                     <span>Today's Appointments</span>
                   </NavLink>
                 </li>
-                <li className="receptionist-nav-item">
-                  <NavLink
-                    to="/receptionist/appointments-pending"
-                    className={linkClass}
-                  >
-                    <span className="receptionist-nav-icon">
-                      <FaCheckCircle />
-                    </span>
+                <li className="modern-nav-item">
+                  <NavLink to="/receptionist/appointments-pending" className={linkClass}>
+                    <span className="modern-nav-icon"><FaCheckCircle /></span>
                     <span>Pending Confirmations</span>
                   </NavLink>
                 </li>
@@ -131,16 +127,52 @@ export default function ReceptionistSidebar({ collapsed = false }) {
           )}
         </li>
 
-        {/* Patients with Submenu */}
-        <li className="receptionist-nav-item">
+        {/* 3. Encounters Dropdown */}
+        <li className="modern-nav-item">
           <div
-            className={`receptionist-nav-link receptionist-nav-toggle ${
-              isPatientsOpen ? "open" : ""
-            }`}
-            onClick={() => setIsPatientsOpen(!isPatientsOpen)}
-            style={{ cursor: "pointer" }}
+            className={`modern-nav-link modern-nav-toggle ${isEncountersOpen ? "open" : ""}`}
+            onClick={() => setIsEncountersOpen(!isEncountersOpen)}
           >
-            <span className="receptionist-nav-icon">
+            <span className="modern-nav-icon">
+              <FaClipboardList />
+            </span>
+            {!collapsed && (
+              <>
+                <span>Encounters</span>
+                <span className="toggle-icon">
+                  <FaChevronDown />
+                </span>
+              </>
+            )}
+          </div>
+
+          {!collapsed && (
+            <Collapse in={isEncountersOpen}>
+              <ul className="modern-submenu">
+                <li className="modern-nav-item">
+                  <NavLink to="/receptionist/encounters" className={linkClass} end>
+                    <span className="modern-nav-icon"><FaListAlt /></span>
+                    <span>Encounter List</span>
+                  </NavLink>
+                </li>
+                <li className="modern-nav-item">
+                  <NavLink to="/receptionist/encounters/templates" className={linkClass}>
+                    <span className="modern-nav-icon"><FaRegCalendarAlt /></span>
+                    <span>Encounter Templates</span>
+                  </NavLink>
+                </li>
+              </ul>
+            </Collapse>
+          )}
+        </li>
+
+        {/* 4. Patients Dropdown */}
+        <li className="modern-nav-item">
+          <div
+            className={`modern-nav-link modern-nav-toggle ${isPatientsOpen ? "open" : ""}`}
+            onClick={() => setIsPatientsOpen(!isPatientsOpen)}
+          >
+            <span className="modern-nav-icon">
               <FaUserInjured />
             </span>
             {!collapsed && (
@@ -155,26 +187,16 @@ export default function ReceptionistSidebar({ collapsed = false }) {
 
           {!collapsed && (
             <Collapse in={isPatientsOpen}>
-              <ul className="receptionist-submenu">
-                <li className="receptionist-nav-item">
-                  <NavLink
-                    to="/receptionist/patients"
-                    className={linkClass}
-                  >
-                    <span className="receptionist-nav-icon">
-                      <FaListAlt />
-                    </span>
+              <ul className="modern-submenu">
+                <li className="modern-nav-item">
+                  <NavLink to="/receptionist/patients" className={linkClass} end>
+                    <span className="modern-nav-icon"><FaListAlt /></span>
                     <span>Patient List</span>
                   </NavLink>
                 </li>
-                <li className="receptionist-nav-item">
-                  <NavLink
-                    to="/receptionist/patients/new"
-                    className={linkClass}
-                  >
-                    <span className="receptionist-nav-icon">
-                      <FaUserInjured />
-                    </span>
+                <li className="modern-nav-item">
+                  <NavLink to="/receptionist/patients/new" className={linkClass}>
+                    <span className="modern-nav-icon"><FaUserInjured /></span>
                     <span>Register Patient</span>
                   </NavLink>
                 </li>
@@ -183,50 +205,42 @@ export default function ReceptionistSidebar({ collapsed = false }) {
           )}
         </li>
 
-        {/* Contact Management */}
-        <li className="receptionist-nav-item">
-          <NavLink to="/receptionist/contacts" className={linkClass}>
-            <span className="receptionist-nav-icon">
-              <FaPhone />
-            </span>
-            {!collapsed && <span>Contact Directory</span>}
+        {/* 5. Doctors */}
+        <li className="modern-nav-item">
+          <NavLink to="/receptionist/doctors" className={linkClass}>
+            <span className="modern-nav-icon"><FaUserMd /></span>
+            {!collapsed && <span>Doctors</span>}
           </NavLink>
         </li>
 
-        {/* Call Logs */}
-        <li className="receptionist-nav-item">
-          <NavLink to="/receptionist/call-logs" className={linkClass}>
-            <span className="receptionist-nav-icon">
-              <FaClipboardList />
-            </span>
-            {!collapsed && <span>Call Logs</span>}
+        {/* 6. Services - Updated Icon to FaList */}
+        <li className="modern-nav-item">
+          <NavLink to="/receptionist/services" className={linkClass}>
+            <span className="modern-nav-icon"><FaList /></span>
+            {!collapsed && <span>Services</span>}
           </NavLink>
         </li>
 
-        {/* Billing Records */}
-        <li className="receptionist-nav-item">
+        {/* 7. Billing Records */}
+        <li className="modern-nav-item">
           <NavLink to="/receptionist/billing" className={linkClass}>
-            <span className="receptionist-nav-icon">
-              <FaFileInvoice />
-            </span>
+            <span className="modern-nav-icon"><FaFileInvoice /></span>
             {!collapsed && <span>Billing Records</span>}
           </NavLink>
         </li>
 
-        {/* Settings */}
-        <li className="receptionist-nav-item">
+        {/* 8. Settings */}
+        <li className="modern-nav-item">
           <NavLink to="/receptionist/settings" className={linkClass}>
-            <span className="receptionist-nav-icon">
-              <IoMdSettings />
-            </span>
+            <span className="modern-nav-icon"><IoMdSettings /></span>
             {!collapsed && <span>Settings</span>}
           </NavLink>
         </li>
       </ul>
 
       {/* Footer */}
-      <div className="receptionist-sidebar-footer">
-        {!collapsed ? "© 2024 One Care" : "©"}
+      <div className="modern-sidebar-footer">
+        {!collapsed ? "© 2026 One Care" : "©"}
       </div>
     </div>
   );

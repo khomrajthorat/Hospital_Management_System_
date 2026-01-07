@@ -127,6 +127,7 @@ const ReceptionistChangePasswordPage = lazy(() => import("./receptionist/Recepti
 const ReceptionistProfile = lazy(() => import("./receptionist/ReceptionistProfile"));
 const ReptionistDashboard = lazy(() => import("./receptionist/ReptionistDashboard"));
 
+
 /* PDF Editor */
 const PdfEditor = lazy(() => import("./pdf-editor/PdfEditor"));
 
