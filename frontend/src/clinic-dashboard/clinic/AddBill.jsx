@@ -115,10 +115,13 @@ const AddBill = () => {
     fetchData();
   }, [autoClinicName]);
 
-  // --- 3. Fetch Encounters ---
+  // --- 3. Fetch Encounters (filtered by patient) ---
   useEffect(() => {
     if (form.patientId) {
-      axios.get(`${API_BASE}/encounters?patientId=${form.patientId}`)
+      const token = localStorage.getItem("token");
+      axios.get(`${API_BASE}/encounters?patientId=${form.patientId}`, {
+        headers: { Authorization: `Bearer ${token}` }
+      })
         .then((res) => {
           const data = Array.isArray(res.data) ? res.data : res.data.encounters || [];
           setEncounters(data);
@@ -129,9 +132,41 @@ const AddBill = () => {
         });
     } else {
       setEncounters([]);
-      setForm(prev => ({ ...prev, encounterId: "" }));
+      setForm(prev => ({ ...prev, encounterId: "", doctorId: "", doctorName: "" }));
     }
   }, [form.patientId]);
+
+  // --- 3b. Auto-populate when Encounter is Selected ---
+  const handleEncounterChange = (e) => {
+    const selectedId = e.target.value;
+    setForm(prev => ({ ...prev, encounterId: selectedId }));
+
+    if (selectedId) {
+      const selectedEnc = encounters.find(enc => enc._id === selectedId);
+      if (selectedEnc) {
+        // Auto-select doctor from encounter
+        const encDoctor = doctors.find(d => d._id === (selectedEnc.doctorId?._id || selectedEnc.doctorId));
+        if (encDoctor) {
+          setForm(prev => ({
+            ...prev,
+            doctorId: encDoctor._id,
+            doctorName: `${encDoctor.firstName} ${encDoctor.lastName}`
+          }));
+        }
+
+        // Auto-populate prescriptions/services from encounter if they exist
+        if (selectedEnc.prescriptions && selectedEnc.prescriptions.length > 0) {
+          const encounterServices = selectedEnc.prescriptions.map(p => ({
+            name: p.name || "Prescription",
+            category: "Pharmacy",
+            description: `${p.frequency || ""} - ${p.duration || ""} ${p.instruction || ""}`.trim(),
+            amount: 0  // Amount needs to be set manually
+          }));
+          setForm(prev => ({ ...prev, services: encounterServices.length > 0 ? encounterServices : [{ name: "", category: "Consultation", description: "", amount: 0 }] }));
+        }
+      }
+    }
+  };
 
   // --- 4. Calculations ---
   useEffect(() => {
@@ -269,8 +304,9 @@ const AddBill = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
 
-    if (!form.doctorId) return toast.error("Please select a Doctor");
     if (!form.patientId) return toast.error("Please select a Patient");
+    if (!form.encounterId) return toast.error("Please select an Encounter (required for billing)");
+    if (!form.doctorId) return toast.error("Please select a Doctor");
     if (!form.clinicId) return toast.error("Please select a Clinic");
 
     try {
@@ -352,13 +388,24 @@ const AddBill = () => {
               </div>
 
               <div className="col-md-6 mb-3">
-                <label className="form-label">Link Encounter (Optional)</label>
-                <select name="encounterId" className="form-select" value={form.encounterId} onChange={handleGenericChange} disabled={!form.patientId}>
+                <label className="form-label">Encounter <span className="text-danger">*</span></label>
+                <select 
+                  name="encounterId" 
+                  className="form-select" 
+                  value={form.encounterId} 
+                  onChange={handleEncounterChange} 
+                  disabled={!form.patientId}
+                  required
+                >
                   <option value="">-- Select Encounter --</option>
                   {encounters.map(enc => (
-                    <option key={enc._id} value={enc._id}>{new Date(enc.date).toLocaleDateString()} (ID: {enc.encounterId})</option>
+                    <option key={enc._id} value={enc._id}>
+                      {new Date(enc.date).toLocaleDateString()} - {enc.encounterId || enc._id.slice(-6)}
+                      {enc.description ? ` (${enc.description.substring(0, 30)}...)` : ""}
+                    </option>
                   ))}
                 </select>
+                {!form.patientId && <small className="text-muted">Select a patient first to see encounters</small>}
               </div>
             </div>
 
