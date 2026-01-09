@@ -184,6 +184,8 @@ export default function SharedEncounterList({ role, doctorId, clinicName: autoCl
   const handleDashboard = (id) => {
     if (role === "doctor") {
       navigate(`/doctor/encounters/${id}`);
+    } else if (role === "clinic") {
+      navigate(`/clinic-dashboard/encounter-details/${id}`);
     } else {
       navigate(`/encounter-details/${id}`);
     }
@@ -246,6 +248,8 @@ export default function SharedEncounterList({ role, doctorId, clinicName: autoCl
       if (!formData.id && res.data && res.data._id) {
         if (role === "doctor") {
           navigate(`/doctor/encounters/${res.data._id}`);
+        } else if (role === "clinic") {
+          navigate(`/clinic-dashboard/encounter-details/${res.data._id}`);
         } else {
           navigate(`/encounter-details/${res.data._id}`);
         }
