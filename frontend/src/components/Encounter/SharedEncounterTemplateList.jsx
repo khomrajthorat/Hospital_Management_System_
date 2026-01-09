@@ -77,6 +77,8 @@ export default function SharedEncounterTemplateList({ role }) {
         // Redirect to details page to edit the rest
         if (role === "doctor") {
           navigate(`/doctor/encounter-template-details/${res.data._id}`);
+        } else if (role === "clinic") {
+          navigate(`/clinic-dashboard/encounter-template-details/${res.data._id}`);
         } else {
           navigate(`/encounter-template-details/${res.data._id}`);
         }
@@ -226,6 +228,10 @@ const confirmDelete = async () => {
                             if (role === "doctor") {
                               navigate(
                                 `/doctor/encounter-template-details/${t._id}`
+                              );
+                            } else if (role === "clinic") {
+                              navigate(
+                                `/clinic-dashboard/encounter-template-details/${t._id}`
                               );
                             } else {
                               navigate(`/encounter-template-details/${t._id}`);
