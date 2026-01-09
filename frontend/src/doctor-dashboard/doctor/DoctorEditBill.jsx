@@ -38,6 +38,8 @@ const EditBill = () => {
     status: "unpaid",
     notes: "",
     paymentMethod: "",  // Payment mode for Razorpay integration
+    razorpayPaymentId: "",  // Razorpay payment ID (if paid online)
+    onlinePaymentDate: null,  // Payment timestamp (if paid online)
   });
 
   const [doctors, setDoctors] = useState([]);
@@ -138,6 +140,8 @@ const EditBill = () => {
           status: bill.status || "unpaid",
           notes: bill.notes || "",
           paymentMethod: bill.paymentMethod || "",
+          razorpayPaymentId: bill.razorpayPaymentId || "",
+          onlinePaymentDate: bill.onlinePaymentDate || null,
         });
 
       } catch (err) {
@@ -430,6 +434,32 @@ const EditBill = () => {
                            <option value="partial">Partial</option>
                         </select>
                      </div>
+                     
+                     {/* Online Payment Info Box */}
+                     {form.paymentMethod === "Online" && form.razorpayPaymentId && (
+                       <div className="mt-3 p-2 border rounded bg-success bg-opacity-10 border-success">
+                         <div className="small fw-bold text-success mb-1">💳 Online Payment Verified</div>
+                         <div className="small">
+                           <span className="text-muted">Payment ID:</span>{" "}
+                           <span className="fw-bold font-monospace">{form.razorpayPaymentId}</span>
+                         </div>
+                         {form.onlinePaymentDate && (
+                           <div className="small">
+                             <span className="text-muted">Paid on:</span>{" "}
+                             <span className="fw-bold">
+                               {new Date(form.onlinePaymentDate).toLocaleString('en-IN', {
+                                 day: '2-digit',
+                                 month: 'short',
+                                 year: 'numeric',
+                                 hour: '2-digit',
+                                 minute: '2-digit',
+                                 hour12: true
+                               })}
+                             </span>
+                           </div>
+                         )}
+                       </div>
+                     )}
                   </div>
                </div>
                

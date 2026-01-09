@@ -427,7 +427,34 @@ router.get("/:id/pdf", verifyToken, async (req, res) => {
       page.drawText(value, { x: cx, y: r2Y - 12, size: 10, font: fontBold, color: primary });
     });
 
-    y = gridTop - gridH - 18;
+    // Row 3 - Online Payment Details (only if paid online via Razorpay)
+    let gridBottomY = gridTop - gridH - 18;
+    if (bill.paymentMethod === "Online" && bill.razorpayPaymentId) {
+      const r3Y = r2Y - 28;
+      const razorpayId = bill.razorpayPaymentId || "N/A";
+      let paymentDateTime = "N/A";
+      if (bill.onlinePaymentDate) {
+        const pDate = new Date(bill.onlinePaymentDate);
+        paymentDateTime = pDate.toLocaleString('en-IN', { 
+          day: '2-digit', 
+          month: 'short', 
+          year: 'numeric',
+          hour: '2-digit',
+          minute: '2-digit',
+          hour12: true 
+        });
+      }
+      
+      [[0, "RAZORPAY PAYMENT ID", razorpayId], [1, "PAYMENT DATE & TIME", paymentDateTime]].forEach(([i, label, value]) => {
+        const cx = margin + i * colW + gridPad;
+        page.drawText(label, { x: cx, y: r3Y, size: 8, font: fontBold, color: secondary });
+        page.drawText(value, { x: cx, y: r3Y - 12, size: 10, font: fontBold, color: accent }); // Using accent color to highlight
+      });
+      
+      gridBottomY = gridTop - gridH - 38; // Adjust spacing to account for Row 3
+    }
+
+    y = gridBottomY;
 
     // =========================================
     // SERVICES TABLE

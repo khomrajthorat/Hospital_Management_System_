@@ -224,6 +224,8 @@ router.post("/verify-payment", verifyToken, async (req, res) => {
     
     // Update payment details
     bill.razorpayPaymentId = razorpay_payment_id;
+    bill.onlinePaymentDate = new Date();  // Save payment timestamp
+    bill.paymentMethod = "Online";        // Set payment method
     bill.paidAmount = bill.totalAmount;
     bill.amountDue = 0;
     bill.status = "paid";
