@@ -154,7 +154,7 @@ export default function ReceptionistDashboard() {
             <div
               className="card shadow-sm border-0 p-3 text-center clickable"
               style={{ cursor: "pointer" }}
-              onClick={() => navigate("/patients")}
+              onClick={() => navigate("/receptionist-dashboard/patients")}
             >
               <div className="d-flex justify-content-center align-items-center gap-3">
                 <div className="bg-danger bg-opacity-10 text-danger rounded-circle p-3">
@@ -175,7 +175,7 @@ export default function ReceptionistDashboard() {
             <div
               className="card shadow-sm border-0 p-3 text-center clickable"
               style={{ cursor: "pointer" }}
-              onClick={() => navigate("/doctors")}
+              onClick={() => navigate("/reception-dashboard/doctors")}
             >
               <div className="d-flex justify-content-center align-items-center gap-3">
                 <div className="bg-warning bg-opacity-10 text-warning rounded-circle p-3">
@@ -196,7 +196,7 @@ export default function ReceptionistDashboard() {
             <div
               className="card shadow-sm border-0 p-3 text-center clickable"
               style={{ cursor: "pointer" }}
-              onClick={() => navigate("/appointments")}
+              onClick={() => navigate("/reception-dashboard/appointments")}
             >
               <div className="d-flex justify-content-center align-items-center gap-3">
                 <div className="bg-success bg-opacity-10 text-success rounded-circle p-3">
@@ -217,7 +217,7 @@ export default function ReceptionistDashboard() {
             <div
               className="card shadow-sm border-0 p-3 text-center clickable"
               style={{ cursor: "pointer" }}
-              onClick={() => navigate("/billing-records")}
+              onClick={() => navigate("/reception-dashboard/billing")}
             >
               <div className="d-flex justify-content-center align-items-center gap-3">
                 <div className="bg-info bg-opacity-10 text-info rounded-circle p-3">

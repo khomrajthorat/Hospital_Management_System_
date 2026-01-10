@@ -17,6 +17,7 @@ export default function Services({ sidebarCollapsed = false, toggleSidebar }) {
     clinicId: authUser?.clinicId || authUser?.id || ""
   };
 
+  const currentYear = new Date().getFullYear();
   return (
     <div className="d-flex">
       <Sidebar collapsed={sidebarCollapsed} />
@@ -25,5 +26,6 @@ export default function Services({ sidebarCollapsed = false, toggleSidebar }) {
         <SharedServices isDoctor={false} isClinic={true} clinicInfo={clinicInfo} />
       </div>
     </div>
+    
   );
 }
