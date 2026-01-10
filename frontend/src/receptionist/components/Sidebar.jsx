@@ -38,8 +38,7 @@ export default function ReceptionistSidebar({ collapsed = false }) {
     logo: defaultLogo
   });
 
-  // API Base URL
-  const API_BASE = import.meta.env.VITE_API_URL || "http://localhost:5000";
+  // API Base URL - Using imported API_BASE from config.js (line 20)
 
   // --- STYLING START ---
   
