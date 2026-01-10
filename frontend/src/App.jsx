@@ -518,7 +518,7 @@ function App() {
           <Route path="/reception-dashboard/encounter-template-details/:id" element={<ReceptionistEncounterTempletDetails/>} />
           <Route path="/receptionist/change-password" element={<ReceptionistChangePassword />} />
           <Route path="/receptionist/change-password-page" element={<ReceptionistChangePasswordPage />} />
-          <Route path="/reception/profile" element={
+          <Route path="/receptionist/profile" element={
             <ReceptionistProfile sidebarCollapsed={sidebarCollapsed} toggleSidebar={toggleSidebar} />
           } />
           {/* Receptionist Settings */}
