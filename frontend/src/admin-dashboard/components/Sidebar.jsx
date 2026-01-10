@@ -14,7 +14,8 @@ import {
   FaCalendarCheck,
   FaMoneyBill,
   FaFileInvoice,
-  FaChevronDown
+  FaChevronDown,
+  FaCreditCard
 } from "react-icons/fa";
 import { NavLink } from "react-router-dom";
 import "../../shared/styles/ModernUI.css";
@@ -154,6 +155,13 @@ export default function Sidebar({ collapsed = false }) {
           <NavLink to="/BillingRecords" className={linkClass}>
             <span className="modern-nav-icon"><FaFileInvoice /></span>
             {!collapsed && <span>Billing Records</span>}
+          </NavLink>
+        </li>
+
+        <li className="modern-nav-item">
+          <NavLink to="/payment-reports" className={linkClass}>
+            <span className="modern-nav-icon"><FaCreditCard /></span>
+            {!collapsed && <span>Payment Reports</span>}
           </NavLink>
         </li>
 

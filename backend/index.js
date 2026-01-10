@@ -162,6 +162,10 @@ app.use("/api/auth/zoom/doctor", zoomOAuthRoutes);
 // Razorpay Payment Routes
 app.use("/api/razorpay", razorpayRoutes);
 
+// Transaction Report Routes
+const transactionRoutes = require("./routes/transactionRoutes");
+app.use("/api/transactions", transactionRoutes);
+
 
 // --- 404 Handler (Must be after all routes) ---
 app.use(notFoundHandler);

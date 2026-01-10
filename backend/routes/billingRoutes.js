@@ -251,6 +251,46 @@ router.delete("/:id", verifyToken, async (req, res) => {
   }
 });
 
+// --- VERIFY BILL (PUBLIC) ---
+router.get("/:id/verify", async (req, res) => {
+  try {
+    const bill = await BillingModel.findById(req.params.id)
+      .populate("patientId", "firstName lastName pid")
+      .populate("doctorId", "firstName lastName specialization")
+      .populate("clinicId", "name address logo") // assuming 'logo' exists or similar
+      .populate("encounterId", "encounterId")
+      .lean();
+
+    if (!bill) {
+      return res.status(404).json({ message: "Bill not found" });
+    }
+
+    // Normalize for public view
+    const publicData = {
+      _id: bill._id,
+      billNumber: bill.billNumber,
+      date: bill.date,
+      time: bill.time,
+      status: bill.status,
+      totalAmount: bill.totalAmount,
+      patientName: bill.patientName || (bill.patientId ? `${bill.patientId.firstName} ${bill.patientId.lastName}` : "N/A"),
+      patientPid: bill.patientId?.pid || "N/A",
+      doctorName: bill.doctorName || (bill.doctorId ? `Dr. ${bill.doctorId.firstName} ${bill.doctorId.lastName}` : "N/A"),
+      clinicName: bill.clinicName || (bill.clinicId ? bill.clinicId.name : "OneCare Clinic"),
+      services: bill.services.map(s => ({ 
+        name: typeof s === 'string' ? s : s.name,
+        amount: typeof s === 'string' ? 0 : s.amount
+      })),
+      verificationUrl: `${process.env.FRONTEND_URL || 'http://localhost:5173'}/verify/bill/${bill._id}`
+    };
+
+    res.json(publicData);
+  } catch (err) {
+    logger.error("Error verifying bill", { id: req.params.id, error: err.message });
+    res.status(500).json({ message: "Server error verifying bill" });
+  }
+});
+
 // --- PDF GENERATION (Professional Medical Receipt Template) ---
 router.get("/:id/pdf", verifyToken, async (req, res) => {
   try {
@@ -553,7 +593,9 @@ router.get("/:id/pdf", verifyToken, async (req, res) => {
     const qrY = sumY - stampH - 15 - qrSize;
     
     try {
-      const verifyUrl = bill.verificationUrl || `${process.env.FRONTEND_URL || 'https://onecare.bhargavkarande.dev'}/verify/bill/${bill._id}`;
+      const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:5173';
+      const verifyUrl = `${frontendUrl}/verify/bill/${bill._id}`;
+      
       const qrDataUrl = await QRCode.toDataURL(verifyUrl, { width: 150, margin: 1 });
       const qrImg = await pdfDoc.embedPng(qrDataUrl);
       page.drawImage(qrImg, { x: qrX, y: qrY, width: qrSize, height: qrSize });
