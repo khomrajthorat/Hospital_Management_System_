@@ -4,7 +4,7 @@ import Sidebar from "./components/Sidebar";
 import Navbar from "./components/Navbar";
 import { FaSave, FaTimes, FaPlus, FaTrash } from "react-icons/fa";
 import { useNavigate, useParams } from "react-router-dom";
-import toast, { Toaster } from "react-hot-toast";
+import toast from "react-hot-toast";
 import API_BASE from "../config";
 
 /* ---------- SCOPED CSS ---------- */
@@ -510,7 +510,6 @@ export default function ReceptionistEditBill({
         style={{ marginLeft: sidebarCollapsed ? 64 : 250 }}
       >
         <Navbar toggleSidebar={toggleSidebar} />
-        <Toaster position="top-right" />
 
         <div className="page-title-bar">
           <h5 className="page-title">Edit Bill</h5>

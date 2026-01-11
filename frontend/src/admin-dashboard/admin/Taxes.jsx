@@ -5,7 +5,7 @@ import Sidebar from "../components/Sidebar";
 import "../../shared/styles/shared-components.css";
 import { FaEdit, FaTrash, FaUpload, FaPlus } from "react-icons/fa";
 import axios from "axios";
-import toast, { Toaster } from "react-hot-toast";
+import toast from "react-hot-toast";
 import API_BASE from "../../config";
 
 const fadeInKeyframes = `
@@ -146,7 +146,6 @@ function Taxes({ sidebarCollapsed = false, toggleSidebar }) {
     filterStatus,
   ]);
 
-  
   const openNewTax = () => {
     setEditingTax(null);
     setForm({
@@ -306,7 +305,7 @@ function Taxes({ sidebarCollapsed = false, toggleSidebar }) {
   return (
     <div className="d-flex" style={{ minHeight: "100vh" }}>
       <style>{fadeInKeyframes}</style>
-      <Toaster position="top-right" reverseOrder={false} />
+      
       {/* Sidebar */}
       <Sidebar collapsed={sidebarCollapsed} />
 
