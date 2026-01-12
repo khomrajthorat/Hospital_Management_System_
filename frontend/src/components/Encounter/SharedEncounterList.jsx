@@ -611,7 +611,7 @@ export default function SharedEncounterList({ role, doctorId, clinicName: autoCl
                       {enc.patient || enc.patientName}
                     </td>
                     <td data-label="Date">
-                      {new Date(enc.date).toLocaleDateString()}
+                      {new Date(enc.date).toLocaleDateString('en-GB')}
                     </td>
                     <td data-label="Status">
                       <span

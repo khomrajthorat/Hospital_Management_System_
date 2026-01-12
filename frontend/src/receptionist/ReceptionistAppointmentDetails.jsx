@@ -1,12 +1,12 @@
-// src/doctor-dashboard/doctor/DoctorAppointmentDetails.jsx
+// src/receptionist-dashboard/receptionist/ReceptionistAppointmentDetails.jsx
 import React, { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import axios from "axios";
-import DoctorLayout from "../layouts/DoctorLayout";
-import API_BASE from "../../config";
-import { showToast } from "../../utils/useToast";
+import ReceptionistLayout from "../receptionist/layouts/ReceptionistLayout";
+import API_BASE from "../config";
+import { showToast } from "../utils/useToast";
 
-export default function DoctorAppointmentDetails() {
+export default function ReceptionistAppointmentDetails() {
   const { id } = useParams();
   const navigate = useNavigate();
 
@@ -21,6 +21,16 @@ export default function DoctorAppointmentDetails() {
         setError("");
 
         const res = await axios.get(`${API_BASE}/appointments/${id}`);
+        console.log("📋 Full Appointment Data:", res.data);
+        console.log("👤 Patient ID Object:", res.data.patientId);
+        
+        // Check if patientId.userId exists
+        if (res.data.patientId?.userId) {
+          console.log("✅ User Data Found:", res.data.patientId.userId);
+        } else {
+          console.warn("⚠️ User Data Not Populated - Check backend populate");
+        }
+        
         setAppointment(res.data);
       } catch (err) {
         console.error("Failed to load appointment", err);
@@ -39,22 +49,22 @@ export default function DoctorAppointmentDetails() {
 
   if (loading) {
     return (
-      <DoctorLayout>
+      <ReceptionistLayout>
         <div className="p-4">Loading appointment…</div>
-      </DoctorLayout>
+      </ReceptionistLayout>
     );
   }
 
   if (error || !appointment) {
     return (
-      <DoctorLayout>
+      <ReceptionistLayout>
         <div className="p-4">
           <p className="text-danger mb-3">{error || "Appointment not found"}</p>
           <button className="btn btn-secondary" onClick={() => navigate(-1)}>
             ← Back
           </button>
         </div>
-      </DoctorLayout>
+      </ReceptionistLayout>
     );
   }
 
@@ -63,45 +73,71 @@ export default function DoctorAppointmentDetails() {
   // Helper function to calculate age from DOB
   const calculateAge = (dob) => {
     if (!dob) return null;
-    const birthDate = new Date(dob);
-    const today = new Date();
-    let age = today.getFullYear() - birthDate.getFullYear();
-    const monthDiff = today.getMonth() - birthDate.getMonth();
-    if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birthDate.getDate())) {
-      age--;
+    try {
+      const birthDate = new Date(dob);
+      const today = new Date();
+      let age = today.getFullYear() - birthDate.getFullYear();
+      const monthDiff = today.getMonth() - birthDate.getMonth();
+      if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birthDate.getDate())) {
+        age--;
+      }
+      return age > 0 ? age : null;
+    } catch (error) {
+      console.error("Error calculating age:", error);
+      return null;
     }
-    return age;
   };
   
   const getPatientInfo = () => {
-    // If patientId is populated with userId
-    if (a.patientId && typeof a.patientId === 'object' && a.patientId.userId) {
-      const user = a.patientId.userId;
-      return {
-        name: user.name || a.patientName,
-        email: user.email || a.patientEmail,
-        phone: user.phone || a.patientPhone,
-        bloodGroup: user.bloodGroup,
-        age: calculateAge(user.dob),
-        gender: user.gender
-      };
+    console.log("🔍 Getting patient info from:", a.patientId);
+    
+    // Method 1: Check if patientId has userId populated (NEW STRUCTURE)
+    if (a.patientId && typeof a.patientId === 'object') {
+      if (a.patientId.userId && typeof a.patientId.userId === 'object') {
+        console.log("✅ Using populated userId data");
+        const user = a.patientId.userId;
+        return {
+          name: user.name || a.patientName || "N/A",
+          email: user.email || a.patientEmail || "N/A",
+          phone: user.phone || a.patientPhone || "N/A",
+          bloodGroup: user.bloodGroup || "N/A",
+          age: calculateAge(user.dob),
+          gender: user.gender || "N/A"
+        };
+      }
+      
+      // Method 2: Check if patientId IS the user object (ALTERNATIVE STRUCTURE)
+      if (a.patientId.name || a.patientId.email) {
+        console.log("✅ PatientId is User object directly");
+        return {
+          name: a.patientId.name || a.patientName || "N/A",
+          email: a.patientId.email || a.patientEmail || "N/A",
+          phone: a.patientId.phone || a.patientPhone || "N/A",
+          bloodGroup: a.patientId.bloodGroup || "N/A",
+          age: calculateAge(a.patientId.dob),
+          gender: a.patientId.gender || "N/A"
+        };
+      }
     }
     
-    // Fallback to root level fields
+    // Method 3: Fallback to root level fields (OLD STRUCTURE)
+    console.log("⚠️ Using fallback - root level fields only");
     return {
-      name: a.patientName,
-      email: a.patientEmail,
-      phone: a.patientPhone,
-      bloodGroup: null,
+      name: a.patientName || "N/A",
+      email: a.patientEmail || "N/A",
+      phone: a.patientPhone || "N/A",
+      bloodGroup: "N/A",
       age: null,
-      gender: null
+      gender: "N/A"
     };
   };
 
   const patient = getPatientInfo();
+  
+  console.log("📊 Final Patient Info:", patient);
 
   return (
-    <DoctorLayout>
+    <ReceptionistLayout>
       <div className="container py-4">
         <button className="btn btn-link mb-3" onClick={() => navigate(-1)}>
           ← Back to calendar
@@ -115,15 +151,15 @@ export default function DoctorAppointmentDetails() {
           <div className="row g-2">
             <div className="col-md-4">
               <p className="mb-1 text-muted small">Name</p>
-              <strong>{patient.name || "N/A"}</strong>
+              <strong>{patient.name}</strong>
             </div>
             <div className="col-md-4">
               <p className="mb-1 text-muted small">Email</p>
-              <strong>{patient.email || "N/A"}</strong>
+              <strong>{patient.email}</strong>
             </div>
             <div className="col-md-4">
               <p className="mb-1 text-muted small">Phone</p>
-              <strong>{patient.phone || "N/A"}</strong>
+              <strong>{patient.phone}</strong>
             </div>
             <div className="col-md-4">
               <p className="mb-1 text-muted small">Age</p>
@@ -131,11 +167,11 @@ export default function DoctorAppointmentDetails() {
             </div>
             <div className="col-md-4">
               <p className="mb-1 text-muted small">Blood Group</p>
-              <strong>{patient.bloodGroup || "N/A"}</strong>
+              <strong>{patient.bloodGroup}</strong>
             </div>
             <div className="col-md-4">
               <p className="mb-1 text-muted small">Services</p>
-              <strong>{a.services || "N/A"}</strong>
+              <strong>{Array.isArray(a.services) ? a.services.join(", ") : (a.services || "N/A")}</strong>
             </div>
           </div>
         </div>
@@ -172,7 +208,7 @@ export default function DoctorAppointmentDetails() {
                 </span>
             </div>
             
-            {/* 🆕 Appointment Mode */}
+            {/* Appointment Mode */}
             {a.appointmentMode && (
               <div className="col-12">
                 <p className="mb-1 text-muted small">Mode</p>
@@ -199,7 +235,10 @@ export default function DoctorAppointmentDetails() {
                         </a>
                         <button 
                           className="btn btn-outline-secondary btn-sm"
-                          onClick={() => { navigator.clipboard.writeText(a.meetingLink); showToast.success('Link copied!'); }}
+                          onClick={() => { 
+                            navigator.clipboard.writeText(a.meetingLink); 
+                            showToast.success('Link copied!'); 
+                          }}
                         >
                           📋 Copy Link
                         </button>
@@ -221,6 +260,6 @@ export default function DoctorAppointmentDetails() {
         </div>
 
       </div>
-    </DoctorLayout>
+    </ReceptionistLayout>
   );
 }

@@ -67,7 +67,7 @@ export default function ReceptionistDashboard() {
 
   const handleEventClick = (clickInfo) => {
     const ev = clickInfo.event;
-    navigate(`/doctor/appointments/${ev.id}`);
+    navigate(`/receptionist/appointments/${ev.id}`);
   };
 
   const handleDateSelect = (selectInfo) => {

@@ -87,6 +87,7 @@ const mergePatientUser = (patient) => {
     _id: patientObj._id,
     userId: user._id, // Only return ID of the user link
     // Patient Data (Merged with User Data where applicable)
+    pid: patientObj.pid,
     firstName: user.name ? user.name.split(" ")[0] : (patientObj.firstName || ""),
     lastName: user.name ? user.name.split(" ").slice(1).join(" ") : (patientObj.lastName || ""),
     name: user.name || `${patientObj.firstName || ""} ${patientObj.lastName || ""}`.trim(),

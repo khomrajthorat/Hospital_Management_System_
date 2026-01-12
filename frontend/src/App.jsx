@@ -140,6 +140,7 @@ const ReceptionistChangePasswordPage = lazy(() => import("./receptionist/Recepti
 const ReceptionistProfile = lazy(() => import("./receptionist/ReceptionistProfile"));
 const ReceptionistDashboard = lazy(() => import("./receptionist/ReceptionistDashboard"));
 const ReceptionistAppointment = lazy(() => import("./receptionist/ReceptionistAppointment"));
+const ReceptionistAppointmentDetails = lazy(() => import("./receptionist/ReceptionistAppointmentDetails"));
 const ReceptionistEncounterList = lazy(() => import("./receptionist/ReceptionistEncounterList"));
 const ReceptionistEncounterDetails = lazy(() => import("./receptionist/ReceptionistEncounterDetails"));
 const ReceptionistEncounterTempletList = lazy(() => import("./receptionist/ReceptionistEncounterTempletList"));
@@ -507,6 +508,7 @@ function App() {
           {/* ==================== RECEPTIONIST SECTION ==================== */}
           <Route path="/reception-dashboard" element={<ReceptionistDashboard />} />
           <Route path="/reception-dashboard/appointments" element={<ReceptionistAppointment/>} />
+          <Route path="/reception-dashboard/appointments/:id" element={<ReceptionistAppointmentDetails />} />
           <Route path="/reception-dashboard/doctors" element={<ReceptionistDoctor/>} />
           <Route path="/receptionist-dashboard/patients" element={<ReceptionistPatients/>} />
           <Route path="/receptionist-dashboard/AddPatient" element={<ReceptionistAddPatient/>} />

@@ -59,7 +59,7 @@ const getClinicName = (row) => {
 const formatDate = (dateString) => {
   if (!dateString) return "N/A";
   const d = new Date(dateString);
-  return isNaN(d.getTime()) ? dateString : d.toLocaleDateString();
+  return isNaN(d.getTime()) ? dateString : d.toLocaleDateString('en-GB');
 };
 
 const dateVariants = (value) => {

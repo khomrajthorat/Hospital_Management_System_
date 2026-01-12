@@ -1297,19 +1297,28 @@ router.get("/:id/pdf", allowUrlToken, verifyToken, async (req, res) => {
   }
 });
 
-// Get appointment by ID
+// ==========================================
+// Get appointment by ID - UPDATED WITH NESTED POPULATE
+// ==========================================
 router.get("/:id", verifyToken, async (req, res) => {
   try {
     const { id } = req.params;
+    
+    // ✅ CRITICAL FIX: Nested populate to get Patient -> User data
     const appt = await AppointmentModel.findById(id)
       .populate({
         path: "patientId",
-        select: "firstName lastName email phone",
         model: "Patient",
+        select: "pid userId clinic",
+        populate: {
+          path: "userId",
+          model: "User",
+          select: "name email phone bloodGroup dob gender avatar addressLine1 addressLine2 city postalCode country"
+        }
       })
       .populate({
         path: "doctorId",
-        select: "name clinic firstName lastName",
+        select: "name clinic firstName lastName specialization",
         model: "Doctor",
       })
       .lean();
@@ -1317,14 +1326,23 @@ router.get("/:id", verifyToken, async (req, res) => {
     if (!appt)
       return res.status(404).json({ message: "Appointment not found" });
 
-    // Normalize patient info
+    // Normalize patient info - handles both old and new structure
     let patientInfo = { name: "N/A", email: "N/A", phone: "N/A" };
     if (appt.patientId && typeof appt.patientId === "object") {
       const p = appt.patientId;
-      patientInfo.name =
-        `${p.firstName || ""} ${p.lastName || ""}`.trim() || p.name || "N/A";
-      patientInfo.email = p.email || "N/A";
-      patientInfo.phone = p.phone || "N/A";
+      // Check if userId is populated (NEW STRUCTURE)
+      if (p.userId && typeof p.userId === "object") {
+        const user = p.userId;
+        patientInfo.name = user.name || appt.patientName || "N/A";
+        patientInfo.email = user.email || appt.patientEmail || "N/A";
+        patientInfo.phone = user.phone || appt.patientPhone || "N/A";
+      } else {
+        // Fallback to old structure
+        patientInfo.name =
+          `${p.firstName || ""} ${p.lastName || ""}`.trim() || p.name || "N/A";
+        patientInfo.email = p.email || "N/A";
+        patientInfo.phone = p.phone || "N/A";
+      }
     } else if (appt.patientName) {
       patientInfo.name = appt.patientName || "N/A";
       patientInfo.email = appt.patientEmail || "N/A";
