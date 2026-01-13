@@ -1,7 +1,7 @@
 // src/components/ClinicWebsite/index.jsx
 // Auto-generated public website for clinics
 import React, { useState, useEffect, useRef } from 'react';
-import { useParams, useLocation } from 'react-router-dom';
+import { useParams, useLocation, useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import API_BASE from '../../config';
 import './ClinicWebsite.css';
@@ -11,7 +11,7 @@ import {
   FiPhone, FiMail, FiMapPin, FiClock, FiCalendar, FiUsers,
   FiInstagram, FiTwitter, FiFacebook, FiLinkedin, FiYoutube,
   FiChevronRight, FiChevronDown, FiMenu, FiX, FiStar, FiImage,
-  FiArrowUp, FiMessageCircle, FiCheck, FiAward, FiHeart, FiShield
+  FiArrowUp, FiMessageCircle, FiCheck, FiAward, FiHeart, FiShield, FiUser
 } from 'react-icons/fi';
 import { FaRupeeSign, FaUserMd, FaStethoscope, FaWhatsapp, FaQuoteLeft } from 'react-icons/fa';
 
@@ -66,6 +66,7 @@ const PAGES = {
 export default function ClinicWebsite() {
   const { subdomain } = useParams();
   const location = useLocation();
+  const navigate = useNavigate();
   
   const [clinicData, setClinicData] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -133,6 +134,10 @@ export default function ClinicWebsite() {
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
+  const goToLogin = () => {
+    navigate(`/c/${subdomain}/login`);
+  };
+
   const scrollToTop = () => {
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
@@ -145,6 +150,16 @@ export default function ClinicWebsite() {
       </div>
     );
   }
+
+  const getImageUrl = (path) => {
+    if (!path) return null;
+    if (path.startsWith('http')) return path;
+    const cleanPath = path.startsWith('/') ? path.slice(1) : path;
+    if (cleanPath.startsWith('uploads/')) {
+        return `${API_BASE}/${cleanPath}`;
+    }
+    return `${API_BASE}/uploads/${cleanPath}`;
+  };
 
   if (error) {
     return (
@@ -166,7 +181,10 @@ export default function ClinicWebsite() {
         <div className="cw-nav-container">
           <div className="cw-logo" onClick={() => goToPage('home')}>
             {d.logo ? (
-              <img src={`${API_BASE}${d.logo}`} alt={d.name} />
+              <img 
+                src={getImageUrl(d.logo)}
+                alt={d.name} 
+              />
             ) : (
               <div className="cw-logo-placeholder">
                 <FaStethoscope />
@@ -189,10 +207,15 @@ export default function ClinicWebsite() {
             ))}
           </ul>
           
-          {/* Book Appointment CTA */}
-          <button onClick={() => goToPage('contact')} className="cw-btn-book">
-            <FiCalendar /> Book Appointment
-          </button>
+          {/* Book Appointment CTA & Login */}
+          <div className="cw-nav-actions" style={{display: 'flex', alignItems: 'center'}}>
+            <button onClick={goToLogin} className="cw-btn-login">
+              <FiUser /> Login
+            </button>
+            <button onClick={() => goToPage('contact')} className="cw-btn-book">
+              <FiCalendar /> Book Appointment
+            </button>
+          </div>
           
           {/* Mobile Toggle */}
           <button className="cw-mobile-toggle" onClick={() => setMobileMenuOpen(!mobileMenuOpen)}>
@@ -212,6 +235,13 @@ export default function ClinicWebsite() {
                 {label}
               </button>
             ))}
+            <div style={{height: 1, background: '#eee', margin: '8px 0'}}></div>
+            <button onClick={goToLogin}>
+              <FiUser style={{marginRight: 8}}/> Staff/Admin Login
+            </button>
+            <button onClick={() => { goToPage('contact'); setMobileMenuOpen(false); }} style={{color: 'var(--cw-primary)', fontWeight: 'bold'}}>
+              Book Appointment
+            </button>
           </div>
         )}
       </nav>

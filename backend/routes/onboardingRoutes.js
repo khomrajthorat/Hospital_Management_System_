@@ -143,8 +143,14 @@ router.get("/check-subdomain", async (req, res) => {
       });
     }
     
-    // Check if already taken
-    const existing = await ClinicOnboarding.findOne({ subdomain: normalized });
+    // Check if already taken (exclude current registration if provided)
+    const { registrationId } = req.query;
+    const query = { subdomain: normalized };
+    if (registrationId) {
+      query.registrationId = { $ne: registrationId };
+    }
+
+    const existing = await ClinicOnboarding.findOne(query);
     if (existing) {
       return res.json({ 
         success: true, 

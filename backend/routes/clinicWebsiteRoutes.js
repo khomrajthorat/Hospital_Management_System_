@@ -48,6 +48,7 @@ router.get("/:subdomain", async (req, res) => {
     // Build response with all available data
     const websiteData = {
       // Basic Info
+      _id: clinic?._id || onboarding?.createdClinicId,
       name: clinic?.name || onboarding?.clinicDetails?.name,
       subdomain: subdomain.toLowerCase(),
       logo: clinic?.clinicLogo || onboarding?.clinicDetails?.logo,
@@ -75,10 +76,10 @@ router.get("/:subdomain", async (req, res) => {
       operatingHours: clinic?.operatingHours || onboarding?.clinicDetails?.operatingHours || [],
       
       // Services
-      services: onboarding?.services || [],
+      services: clinic?.services || onboarding?.services || [],
       
       // Staff/Doctors
-      staff: onboarding?.staff || [],
+      staff: clinic?.doctors || onboarding?.staff || [],
       
       // Additional Info
       specializations: clinic?.specialties || onboarding?.clinicDetails?.specializations || [],

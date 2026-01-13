@@ -8,7 +8,7 @@ import API_BASE from '../../../config';
 // Get frontend URL from environment - this determines the clinic website base URL
 const FRONTEND_URL = import.meta.env.VITE_FRONTEND_URL || window.location.origin;
 
-export default function SubdomainStep({ data, updateData, onNext }) {
+export default function SubdomainStep({ data, updateData, onNext, registrationId }) {
   const [subdomain, setSubdomain] = useState(data?.subdomain || '');
   const [checking, setChecking] = useState(false);
   const [availability, setAvailability] = useState(null); // { available: bool, message: string }
@@ -23,7 +23,8 @@ export default function SubdomainStep({ data, updateData, onNext }) {
     
     setChecking(true);
     try {
-      const res = await axios.get(`${API_BASE}/api/onboarding/check-subdomain?subdomain=${value}`);
+      const url = `${API_BASE}/api/onboarding/check-subdomain?subdomain=${value}${registrationId ? `&registrationId=${registrationId}` : ''}`;
+      const res = await axios.get(url);
       setAvailability({
         available: res.data.available,
         message: res.data.message
@@ -36,7 +37,7 @@ export default function SubdomainStep({ data, updateData, onNext }) {
     } finally {
       setChecking(false);
     }
-  }, []);
+  }, [registrationId]);
 
   // Handle input change with debounce
   const handleChange = (e) => {

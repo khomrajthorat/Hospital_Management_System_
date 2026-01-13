@@ -22,7 +22,9 @@
 }
 
 @keyframes spin {
-  to { transform: rotate(360deg); }
+  to {
+    transform: rotate(360deg);
+  }
 }
 
 /* Main Container */
@@ -77,18 +79,33 @@
 }
 
 @keyframes float1 {
-  0%, 100% { transform: translate(0, 0) rotate(0deg); }
-  50% { transform: translate(-50px, 50px) rotate(10deg); }
+  0%,
+  100% {
+    transform: translate(0, 0) rotate(0deg);
+  }
+  50% {
+    transform: translate(-50px, 50px) rotate(10deg);
+  }
 }
 
 @keyframes float2 {
-  0%, 100% { transform: translate(0, 0) rotate(0deg); }
-  50% { transform: translate(30px, -30px) rotate(-10deg); }
+  0%,
+  100% {
+    transform: translate(0, 0) rotate(0deg);
+  }
+  50% {
+    transform: translate(30px, -30px) rotate(-10deg);
+  }
 }
 
 @keyframes float3 {
-  0%, 100% { transform: translate(0, 0) scale(1); }
-  50% { transform: translate(20px, 20px) scale(1.1); }
+  0%,
+  100% {
+    transform: translate(0, 0) scale(1);
+  }
+  50% {
+    transform: translate(20px, 20px) scale(1.1);
+  }
 }
 
 /* Header */
@@ -252,18 +269,36 @@
 }
 
 @keyframes slideIn {
-  from { opacity: 0; transform: translateY(20px); }
-  to { opacity: 1; transform: translateY(0); }
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
 @keyframes slideInRight {
-  from { opacity: 0; transform: translateX(50px); }
-  to { opacity: 1; transform: translateX(0); }
+  from {
+    opacity: 0;
+    transform: translateX(50px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
 }
 
 @keyframes slideInLeft {
-  from { opacity: 0; transform: translateX(-50px); }
-  to { opacity: 1; transform: translateX(0); }
+  from {
+    opacity: 0;
+    transform: translateX(-50px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
 }
 
 /* Step Header */
@@ -573,26 +608,32 @@
 .hours-grid {
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: 4px;
 }
 
 .hours-row {
   display: grid;
-  grid-template-columns: 100px 1fr 1fr 80px;
+  grid-template-columns: 90px 100px 30px 100px 70px;
   align-items: center;
-  gap: 12px;
-  padding: 12px;
+  gap: 8px;
+  padding: 8px 12px;
   background: #f8fafc;
-  border-radius: 8px;
+  border-radius: 6px;
+}
+
+.hours-row.closed {
+  opacity: 0.6;
 }
 
 .hours-row .day-name {
   font-weight: 600;
   color: #374151;
+  font-size: 14px;
 }
 
 .hours-row input[type="time"] {
-  padding: 8px 12px;
+  padding: 6px 8px;
+  font-size: 14px;
 }
 
 .hours-row .closed-toggle {
@@ -601,6 +642,53 @@
   gap: 6px;
   font-size: 13px;
   color: #64748b;
+  cursor: pointer;
+}
+
+.hours-row .closed-toggle input[type="checkbox"] {
+  width: 16px;
+  height: 16px;
+  accent-color: #2563eb;
+}
+
+/* Section */
+.section {
+  margin-bottom: 24px;
+}
+
+/* Error Styles */
+.error-text {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  color: #dc2626;
+  font-size: 12px;
+  margin-top: 4px;
+}
+
+input.error {
+  border-color: #dc2626;
+}
+
+/* Checkbox Group */
+.checkbox-group {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.checkbox-item {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 14px;
+  cursor: pointer;
+}
+
+.checkbox-item input[type="checkbox"] {
+  width: 18px;
+  height: 18px;
+  accent-color: #2563eb;
 }
 
 /* Tags Input */
@@ -693,8 +781,14 @@
 }
 
 @keyframes fadeIn {
-  from { opacity: 0; transform: translateY(10px); }
-  to { opacity: 1; transform: translateY(0); }
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
 /* Preview Section */
@@ -718,9 +812,15 @@
   border-radius: 50%;
 }
 
-.preview-header .dot.red { background: #ef4444; }
-.preview-header .dot.yellow { background: #f59e0b; }
-.preview-header .dot.green { background: #22c55e; }
+.preview-header .dot.red {
+  background: #ef4444;
+}
+.preview-header .dot.yellow {
+  background: #f59e0b;
+}
+.preview-header .dot.green {
+  background: #22c55e;
+}
 
 .preview-url {
   flex: 1;
@@ -810,29 +910,29 @@
   .step-content-wrapper {
     max-width: 720px;
   }
-  
+
   .step-content {
     padding: 30px;
   }
-  
+
   .step-header h2 {
     font-size: 1.5rem;
   }
-  
+
   .progress-stepper {
     padding: 30px 15px 15px;
   }
-  
+
   .step-item {
     min-width: 90px;
   }
-  
+
   .step-circle {
     width: 38px;
     height: 38px;
     font-size: 16px;
   }
-  
+
   .step-title {
     font-size: 12px;
   }
@@ -844,21 +944,21 @@
     max-width: 600px;
     padding: 15px;
   }
-  
+
   .step-content {
     padding: 24px;
   }
-  
+
   .form-row-3 {
     grid-template-columns: repeat(2, 1fr);
   }
-  
+
   .hours-row {
     grid-template-columns: 80px 90px auto 90px 70px;
     gap: 8px;
     padding: 10px;
   }
-  
+
   .hours-row input[type="time"] {
     padding: 6px 8px;
     font-size: 13px;
@@ -870,46 +970,45 @@
   .onboarding-header {
     padding: 16px 20px;
   }
-  
+
   .progress-stepper {
     overflow-x: auto;
     justify-content: flex-start;
     padding: 20px;
   }
-  
+
   .step-item {
     min-width: 70px;
   }
-  
+
   .step-title {
     font-size: 11px;
   }
-  
+
   .step-content {
     padding: 20px 16px;
   }
-  
+
   .form-row {
     grid-template-columns: 1fr;
   }
-  
+
   .form-row-3 {
     grid-template-columns: 1fr;
   }
-  
+
   .hours-row {
     grid-template-columns: 1fr 1fr;
     gap: 8px;
     text-align: left;
   }
-  
+
   .hours-row .day-name {
     grid-column: 1 / -1;
   }
-  
+
   .image-upload {
     flex-direction: column;
     align-items: flex-start;
   }
 }
-

@@ -172,6 +172,28 @@
   box-shadow: 0 4px 14px rgba(37, 99, 235, 0.3);
 }
 
+.cw-btn-login {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 20px;
+  background: white;
+  color: var(--cw-primary);
+  border: 1px solid var(--cw-border);
+  border-radius: 8px;
+  font-weight: 600;
+  font-size: 14px;
+  transition: all 0.2s;
+  cursor: pointer;
+  margin-right: 12px;
+}
+
+.cw-btn-login:hover {
+  background: var(--cw-bg);
+  color: var(--cw-primary-dark);
+  border-color: var(--cw-primary);
+}
+
 .cw-mobile-toggle {
   display: none;
   background: none;
@@ -233,7 +255,6 @@
 
 .cw-hero-content h1 span {
   display: block;
-  background: rgba(255, 255, 255, 0.2);
   padding: 4px 0;
   border-radius: 4px;
 }

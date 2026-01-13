@@ -8,6 +8,22 @@ const operatingHoursSchema = new mongoose.Schema({
   closeTime: { type: String }
 }, { _id: false });
 
+const serviceSchema = new mongoose.Schema({
+  name: { type: String, required: true, trim: true },
+  description: { type: String, trim: true },
+  price: { type: Number },
+  duration: { type: Number, default: 30 }
+}, { _id: true });
+
+const doctorSchema = new mongoose.Schema({
+  name: { type: String, required: true, trim: true },
+  photo: { type: String },
+  specialty: { type: String, trim: true },
+  qualifications: { type: String, trim: true },
+  experience: { type: Number },
+  bio: { type: String, trim: true }
+}, { _id: true });
+
 const clinicSchema = new mongoose.Schema(
   {
     hospitalId: { type: String, unique: true, required: true },
@@ -17,6 +33,12 @@ const clinicSchema = new mongoose.Schema(
     contact: { type: String, required: true },
 
     specialties: { type: [String], default: [] },
+    
+    // Services offered
+    services: [serviceSchema],
+    
+    // Doctors/Staff
+    doctors: [doctorSchema],
 
     status: { type: String, enum: ["Active", "Inactive"], default: "Active" },
 

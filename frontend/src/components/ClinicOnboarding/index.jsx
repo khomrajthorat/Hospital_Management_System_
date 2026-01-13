@@ -191,6 +191,7 @@ export default function ClinicOnboarding() {
               data={onboardingData}
               updateData={updateData}
               onNext={goToNext}
+              registrationId={registrationId}
             />
           )}
           {currentStep === 2 && (

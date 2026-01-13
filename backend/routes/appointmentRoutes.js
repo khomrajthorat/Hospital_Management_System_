@@ -207,6 +207,41 @@ router.get("/slots", verifyToken, async (req, res) => {
 });
 
 // ==========================================
+// VERIFY APPOINTMENT (Public)
+// ==========================================
+router.get("/:id/verify", async (req, res) => {
+  try {
+    const appointment = await AppointmentModel.findById(req.params.id)
+      .populate("patientId", "firstName lastName pid")
+      .populate("doctorId", "firstName lastName specialization");
+
+    if (!appointment) {
+      return res.status(404).json({ message: "Appointment not found" });
+    }
+
+    // Format response for verification page
+    const response = {
+      appointmentId: appointment.appointmentId || appointment._id.toString().slice(-6).toUpperCase(),
+      date: appointment.date,
+      time: appointment.time,
+      status: appointment.status,
+      patientName: appointment.patientName || 
+        (appointment.patientId ? `${appointment.patientId.firstName} ${appointment.patientId.lastName}` : "N/A"),
+      patientPid: appointment.patientId?.pid || "N/A",
+      doctorName: appointment.doctorName || 
+        (appointment.doctorId ? `${appointment.doctorId.firstName} ${appointment.doctorId.lastName}` : "N/A"),
+      department: appointment.department || appointment.doctorId?.specialization || "General",
+      clinic: appointment.clinic
+    };
+
+    res.json(response);
+  } catch (err) {
+    console.error("Verification error:", err);
+    res.status(500).json({ message: "Server error", error: err.message });
+  }
+});
+
+// ==========================================
 // CREATE APPOINTMENT
 // ==========================================
 router.post("/", verifyToken, async (req, res) => {
@@ -1397,5 +1432,7 @@ router.delete("/:id", verifyToken, async (req, res) => {
     res.status(500).json({ message: "Server error", error: err.message });
   }
 });
+
+
 
 module.exports = router;
