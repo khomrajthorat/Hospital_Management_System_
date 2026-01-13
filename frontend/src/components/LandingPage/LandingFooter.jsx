@@ -6,6 +6,7 @@ import {
 import { 
   FaLinkedin, FaTwitter, FaGithub
 } from 'react-icons/fa';
+import { FRONTEND_URL, WEBSITE_DOMAIN } from '../../config';
 import './LandingPage.css';
 
 const LandingFooter = () => {
@@ -88,8 +89,8 @@ const LandingFooter = () => {
               <a href="tel:+919420530466">
                 <FiPhone /> +91 94205 30466
               </a>
-              <a href="https://onecare.bhargavkarande.dev" target="_blank" rel="noopener noreferrer">
-                <FiGlobe /> onecare.bhargavkarande.dev
+              <a href={FRONTEND_URL} target="_blank" rel="noopener noreferrer">
+                <FiGlobe /> {WEBSITE_DOMAIN}
               </a>
             </div>
           </div>

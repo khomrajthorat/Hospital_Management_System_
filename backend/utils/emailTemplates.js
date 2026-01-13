@@ -120,7 +120,7 @@ function clinicRegistrationConfirmationTemplate({ ownerName, clinicName, applica
           </p>
         </div>
 
-        <p style="margin-top: 24px;">If you have any questions, feel free to reply to this email or contact us at <a href="mailto:support@bhargavkarande.tech" style="color: #2563eb;">support@onecare.app</a></p>
+        <p style="margin-top: 24px;">If you have any questions, feel free to reply to this email or contact us at <a href="mailto:support@onecare.app" style="color: #2563eb;">support@onecare.app</a></p>
       </div>
 
       <div style="padding: 20px; background: #f9fafb; text-align: center; border: 1px solid #e5e7eb; border-top: none; border-radius: 0 0 8px 8px;">

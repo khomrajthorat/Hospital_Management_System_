@@ -191,11 +191,4 @@ const PORT = process.env.PORT || 3001;
 server.listen(PORT, () => {
   logger.info("Backend server running on port " + PORT);
   logger.info(`Security: Helmet ✓ | Compression ✓ | CORS ✓ | Sanitization ✓ | WebSockets ✓`);
-  
-  // Start keep-alive service in production (prevents Render cold starts)
-  if (isProduction && process.env.RENDER_EXTERNAL_URL) {
-    const { startKeepAlive } = require('./utils/keepAlive');
-    const healthUrl = `${process.env.RENDER_EXTERNAL_URL}/health`;
-    startKeepAlive(healthUrl);
-  }
 });

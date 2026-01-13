@@ -1259,7 +1259,7 @@ router.get("/:id/pdf", allowUrlToken, verifyToken, async (req, res) => {
     // QR Code (left) - uses FRONTEND_URL for verification
     const qrSize = 65;
     try {
-      // Use FRONTEND_URL from environment (works for localhost, Render, AWS)
+      // Use FRONTEND_URL from environment for verification link
       const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:5173';
       const verifyUrl = `${frontendUrl}/verify/appointment/${appt._id}`;
       const qrDataUrl = await QRCode.toDataURL(verifyUrl, { width: 150, margin: 1 });

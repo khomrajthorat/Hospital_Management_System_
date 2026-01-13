@@ -18,6 +18,9 @@ const { loginValidation, signupValidation, changePasswordValidation } = require(
 // Email Service
 const { sendEmail } = require("../utils/emailService");
 
+// Logger
+const logger = require("../utils/logger");
+
 // Models
 const User = require("../models/User");
 const Receptionist = require("../models/Receptionist");
@@ -61,7 +64,7 @@ router.post("/google", async (req, res) => {
 
     const { name, email, picture, sub: googleId } = userinfo.data;
 
-    console.log(`Google Login Attempt for email: ${email}`);
+    logger.debug("Google Login Attempt", { email });
 
     // Check if user exists in other roles (Doctor, Receptionist, Admin) - RESTRICT ACCESS
     const existingDoctor = await DoctorModel.findOne({ email });
@@ -69,7 +72,7 @@ router.post("/google", async (req, res) => {
     const existingAdmin = await Admin.findOne({ email });
 
     if (existingDoctor || existingReceptionist || existingAdmin) {
-      console.warn(`Google login blocked for non-patient email: ${email}`);
+      logger.warn("Google login blocked for non-patient role", { email });
       return res.status(403).json({
         message: "Google Login is restricted to Patients only. Please use your email and password to log in."
       });
@@ -80,7 +83,7 @@ router.post("/google", async (req, res) => {
 
     if (!user) {
       // Create new patient user
-      console.log("Creating new user from Google Login:", email);
+      logger.info("Creating new user from Google Login", { email });
 
       const randomPassword = crypto.randomBytes(16).toString("hex");
       const hashedPassword = await bcrypt.hash(randomPassword, 10);
@@ -144,7 +147,7 @@ router.post("/google", async (req, res) => {
     });
 
   } catch (err) {
-    console.error("Google Login Error:", err.message);
+    logger.error("Google Login Error", { error: err.message });
     res.status(500).json({ message: "Google authentication failed" });
   }
 });
@@ -280,13 +283,13 @@ router.post("/login", loginValidation, async (req, res) => {
     }
 
     // 4) If not receptionist or doctor, check User collection (patients, clinic_admin)
-    console.log("Checking User collection for:", email);
+    logger.debug("Checking User collection for login");
     const user = await User.findOne({ email });
 
     if (user) {
-      console.log("User found:", user._id, user.role);
+      // User found, verify password (no logging of match result for security)
+      logger.debug("Login attempt for user", { userId: user._id.toString(), role: user.role });
       const match = await checkPassword(password, user.password);
-      console.log("Password match result:", match);
 
       if (!match) {
         return res.status(401).json({ message: "Invalid email or password" });
@@ -334,7 +337,7 @@ router.post("/login", loginValidation, async (req, res) => {
 
     return res.status(401).json({ message: "Invalid email or password" });
   } catch (err) {
-    console.error("Login error:", err.message);
+    logger.error("Login error", { error: err.message });
     res.status(500).json({ message: "Server error during login" });
   }
 });
@@ -521,7 +524,7 @@ router.post("/signup", signupValidation, async (req, res) => {
       });
     }
   } catch (err) {
-    console.error("Signup error:", err.message);
+    logger.error("Signup error", { error: err.message });
     res.status(500).json({ message: "Server error during signup" });
   }
 });

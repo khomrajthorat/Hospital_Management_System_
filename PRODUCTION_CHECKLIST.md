@@ -6,24 +6,24 @@
   - `NODE_ENV=production`
   - `MONGO_URI` (Use production database)
   - `JWT_SECRET` (Use a strong, long secret)
-  - `CORS_ORIGIN` (Set to specific frontend domain, e.g., `https://onecare.app`, NOT `*`)
+  - `CORS_ORIGIN` (Set to specific frontend domain, e.g., `https://yourdomain.in`, NOT `*`)
   - `FRONTEND_URL` & `BACKEND_URL` (Correct public URLs)
-  - `PORT` (e.g., 10000 on Render)
+  - `PORT` (e.g., 3001)
 - [ ] **Secrets Management**: Ensure `.env` is NOT committed to git.
 
 ## 2. Security
 
-- [ ] **HTTPS**: Ensure the application runs over HTTPS (Render/Heroku handles this automatically).
+- [ ] **HTTPS**: Ensure the application runs over HTTPS (use Let's Encrypt/Certbot).
 - [ ] **Secure Headers**: `helmet` middleware is enabled in `backend/index.js`.
 - [ ] **CORS**: Verify strictly allowed origins only.
-- [ ] **MongoDB**: Whitelist IP addresses for MongoDB Access (e.g., MongoDB Atlas Network Access).
+- [ ] **MongoDB**: Whitelist VPS IP addresses for MongoDB Access (e.g., MongoDB Atlas Network Access).
 
 ## 3. Performance & Reliability
 
 - [ ] **Logging**: `winston` is used for logging. `console.log` should be minimal or removed.
 - [ ] **Compression**: `compression` middleware is enabled.
 - [ ] **Database Indexes**: Ensure frequently queried fields (e.g., `email`, `date`, `patientId`) are indexed in MongoDB.
-- [ ] **Keep-Alive**: If using Render Free Tier, ensure `utils/keepAlive.js` mechanism is active or upgrade service plan.
+- [ ] **PM2**: Use PM2 for process management with auto-restart on failure.
 
 ## 4. Frontend Optimization
 
@@ -37,7 +37,9 @@
 - [ ] **Google OAuth**: Add production domain to "Authorized JavaScript origins" and "Authorized redirect URIs" in Google Cloud Console.
 - [ ] **Zoom/WhatsApp**: Update webhooks/callbacks if environment URLs change.
 
-## 6. Deployment
+## 6. Deployment (VPS)
 
-- [ ] **Build Command**: `npm install` (backend) / `npm install && npm run build` (frontend).
-- [ ] **Start Command**: `node index.js` (backend).
+- [ ] **Nginx**: Configure as reverse proxy with SSL.
+- [ ] **SSL Certificate**: Obtain via Certbot (Let's Encrypt).
+- [ ] **PM2**: Start with `pm2 start ecosystem.config.js`.
+- [ ] **Firewall**: Configure UFW to allow only ports 80, 443, 22.
