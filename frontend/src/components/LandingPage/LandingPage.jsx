@@ -234,7 +234,7 @@ const LandingPage = () => {
   return (
     <div className="landing-page">
       {/* Navigation */}
-      <nav className={`landing-nav ${isScrolled ? 'scrolled' : ''}`}>
+      <nav className={`landing-nav ${isScrolled ? 'scrolled' : ''} ${isMenuOpen ? 'menu-open' : ''}`}>
         <div className="nav-container">
           <Link to="/" className="nav-logo">
             <img src="/logo.png" alt="OneCare HMS" />

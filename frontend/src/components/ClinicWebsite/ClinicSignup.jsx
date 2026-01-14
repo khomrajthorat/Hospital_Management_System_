@@ -12,6 +12,7 @@ import {
   validators,
   formatPhone
 } from '../../auth/authService';
+import '../../auth/OneCareAuth.css';
 import '../ClinicWebsite/ClinicAuth.css';
 
 const ROLES = [
@@ -199,7 +200,7 @@ export default function ClinicSignup() {
       <main className="auth-wrapper clinic-auth-wrapper">
         {/* Side Panel */}
         <div className="clinic-side-panel">
-          <div className="panel-content">
+          <div className="clinic-panel-content">
             <h1>Join {clinic?.name || 'Us'}</h1>
             <p>Create your account to book appointments, access medical records, and connect with healthcare professionals.</p>
             <button className="transparent-btn" type="button" onClick={() => navigate(`/c/${subdomain}/login`)}>
@@ -216,16 +217,18 @@ export default function ClinicSignup() {
           <form onSubmit={handleSubmit}>
             {/* Clinic Branding */}
             <div className="clinic-branding-header">
-              {clinic?.logo ? (
-                <img 
-                  src={getImageUrl(clinic.logo)}
-                  alt={clinic.name} 
-                  className="clinic-logo-img" 
-                />
-              ) : (
-                <div className="medical-cross" style={{ width: 40, height: 40, margin: '0 auto 10px' }}></div>
-              )}
-              <span className="clinic-name-badge">{clinic?.name}</span>
+              <Link to={`/c/${subdomain}`} style={{ textDecoration: 'none', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+                {clinic?.logo ? (
+                  <img 
+                    src={getImageUrl(clinic.logo)}
+                    alt={clinic.name} 
+                    className="clinic-logo-img" 
+                  />
+                ) : (
+                  <div className="medical-cross" style={{ width: 40, height: 40, margin: '0 auto 10px' }}></div>
+                )}
+                <span className="clinic-name-badge">{clinic?.name}</span>
+              </Link>
             </div>
 
             <h1 className="animate-enter" style={{ '--i': 0 }}>Create Account</h1>

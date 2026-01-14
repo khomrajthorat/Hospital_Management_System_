@@ -20,7 +20,7 @@
     padding: 40px;
 }
 
-.finder-side-panel .panel-content {
+.finder-side-panel .finder-panel-content {
     text-align: center;
     color: #fff;
 }
@@ -246,13 +246,11 @@
 @media (max-width: 768px) {
     .clinic-finder-wrapper {
         flex-direction: column-reverse;
-        min-height: auto;
+        min-height: auto !important;
     }
 
     .finder-side-panel {
-        width: 100%;
-        border-radius: 0 0 30px 30px;
-        padding: 30px 20px;
+        display: none !important;
     }
 
     .finder-side-panel h1 {
@@ -274,5 +272,9 @@
 
     .clinics-list {
         max-height: none;
+    }
+
+    .search-box input {
+        font-size: 16px; /* Prevent zoom on iOS */
     }
 }

@@ -4,7 +4,9 @@ import React, { useState, useEffect, useRef } from 'react';
 import { useParams, useLocation, useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import API_BASE from '../../config';
+import { logoutUser } from '../../auth/authService';
 import './ClinicWebsite.css';
+import AppointmentBookingModal from './AppointmentBookingModal';
 
 // Icons
 import { 
@@ -74,6 +76,54 @@ export default function ClinicWebsite() {
   const [currentPage, setCurrentPage] = useState('home');
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [showBackToTop, setShowBackToTop] = useState(false);
+  const [showBookingModal, setShowBookingModal] = useState(false);
+  const [loggedInUser, setLoggedInUser] = useState(null);
+
+  // Check if patient is logged in
+  // Check if patient is logged in
+  useEffect(() => {
+    const token = localStorage.getItem('token');
+    const authUserStr = localStorage.getItem('authUser');
+    const userStr = localStorage.getItem('user');
+
+    if (token) {
+      try {
+        // Try standardized authUser first (used by ClinicLogin)
+        if (authUserStr) {
+          const userData = JSON.parse(authUserStr);
+          if (userData.role === 'patient') {
+            setLoggedInUser(userData);
+            return;
+          }
+        }
+        
+        // Fallback to legacy user key (used by standard Login)
+        if (userStr) {
+          const userData = JSON.parse(userStr);
+          if (userData.role === 'patient') {
+            setLoggedInUser(userData);
+          }
+        }
+      } catch (e) {
+        console.error('Error parsing user data:', e);
+      }
+    }
+  }, []);
+
+  // Handle logout
+  // Handle logout
+  const handleLogout = () => {
+    logoutUser();
+    // Also clear legacy user key just in case
+    localStorage.removeItem('user');
+    setLoggedInUser(null);
+    toast.success('Logged out successfully');
+  };
+
+  // Go to patient dashboard
+  const goToDashboard = () => {
+    navigate(`/c/${subdomain}/patient-dashboard`);
+  };
 
   // SEO - Update document title
   useEffect(() => {
@@ -207,12 +257,23 @@ export default function ClinicWebsite() {
             ))}
           </ul>
           
-          {/* Book Appointment CTA & Login */}
-          <div className="cw-nav-actions" style={{display: 'flex', alignItems: 'center'}}>
-            <button onClick={goToLogin} className="cw-btn-login">
-              <FiUser /> Login
-            </button>
-            <button onClick={() => goToPage('contact')} className="cw-btn-book">
+          {/* Book Appointment CTA & Login/User Menu */}
+          <div className="cw-nav-actions" style={{display: 'flex', alignItems: 'center', gap: '12px'}}>
+            {loggedInUser ? (
+              <>
+                <button onClick={goToDashboard} className="cw-btn-login">
+                  <FiUser /> Dashboard
+                </button>
+                <button onClick={handleLogout} className="cw-btn-login" style={{background: '#fee2e2', color: '#dc2626'}}>
+                  Logout
+                </button>
+              </>
+            ) : (
+              <button onClick={goToLogin} className="cw-btn-login">
+                <FiUser /> Login
+              </button>
+            )}
+            <button onClick={() => setShowBookingModal(true)} className="cw-btn-book">
               <FiCalendar /> Book Appointment
             </button>
           </div>
@@ -236,10 +297,21 @@ export default function ClinicWebsite() {
               </button>
             ))}
             <div style={{height: 1, background: '#eee', margin: '8px 0'}}></div>
-            <button onClick={goToLogin}>
-              <FiUser style={{marginRight: 8}}/> Staff/Admin Login
-            </button>
-            <button onClick={() => { goToPage('contact'); setMobileMenuOpen(false); }} style={{color: 'var(--cw-primary)', fontWeight: 'bold'}}>
+            {loggedInUser ? (
+              <>
+                <button onClick={() => { goToDashboard(); setMobileMenuOpen(false); }}>
+                  <FiUser style={{marginRight: 8}}/> My Dashboard
+                </button>
+                <button onClick={() => { handleLogout(); setMobileMenuOpen(false); }} style={{color: '#dc2626'}}>
+                  Logout
+                </button>
+              </>
+            ) : (
+              <button onClick={goToLogin}>
+                <FiUser style={{marginRight: 8}}/> Staff/Admin Login
+              </button>
+            )}
+            <button onClick={() => { setShowBookingModal(true); setMobileMenuOpen(false); }} style={{color: 'var(--cw-primary)', fontWeight: 'bold'}}>
               Book Appointment
             </button>
           </div>
@@ -248,7 +320,7 @@ export default function ClinicWebsite() {
 
       {/* Main Content */}
       <main className="cw-main">
-        {currentPage === 'home' && <HomePage data={d} goToPage={goToPage} />}
+        {currentPage === 'home' && <HomePage data={d} goToPage={goToPage} onBookAppointment={() => setShowBookingModal(true)} />}
         {currentPage === 'about' && <AboutPage data={d} />}
         {currentPage === 'services' && <ServicesPage data={d} />}
         {currentPage === 'doctors' && <DoctorsPage data={d} />}
@@ -319,13 +391,22 @@ export default function ClinicWebsite() {
           <FiArrowUp />
         </button>
       )}
+
+      {/* Appointment Booking Modal */}
+      <AppointmentBookingModal
+        isOpen={showBookingModal}
+        onClose={() => setShowBookingModal(false)}
+        subdomain={subdomain}
+        clinicData={clinicData}
+        onLogin={(userData) => setLoggedInUser(userData)}
+      />
     </div>
   );
 }
 
 // ============ PAGE COMPONENTS ============
 
-function HomePage({ data, goToPage }) {
+function HomePage({ data, goToPage, onBookAppointment }) {
   const d = data;
   
   return (
@@ -336,7 +417,7 @@ function HomePage({ data, goToPage }) {
           <h1>Welcome to <span>{d.name}</span></h1>
           <p>{d.about || DEFAULTS.about}</p>
           <div className="cw-hero-buttons">
-            <button className="cw-btn-primary" onClick={() => goToPage('contact')}>
+            <button className="cw-btn-primary" onClick={onBookAppointment}>
               <FiCalendar /> Book Appointment
             </button>
             <button className="cw-btn-secondary" onClick={() => goToPage('services')}>

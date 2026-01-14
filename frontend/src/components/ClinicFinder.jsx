@@ -3,6 +3,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import axios from 'axios';
 import API_BASE from '../config';
+import '../auth/OneCareAuth.css';
 import './ClinicFinder.css';
 
 export default function ClinicFinder() {
@@ -59,7 +60,7 @@ export default function ClinicFinder() {
       <main className="auth-wrapper clinic-finder-wrapper">
         {/* Side Panel */}
         <div className="finder-side-panel">
-          <div className="panel-content">
+          <div className="finder-panel-content">
             <div className="medical-cross" style={{ width: 60, height: 60, background: '#fff', margin: '0 auto 20px' }}></div>
             <h1>OneCare</h1>
             <p>Find your clinic and access your healthcare portal securely.</p>
@@ -75,7 +76,9 @@ export default function ClinicFinder() {
         {/* Finder Content */}
         <div className="finder-content-section">
           <div className="finder-header">
-            <i className="fas fa-hospital-alt"></i>
+            <Link to="/" style={{ textDecoration: 'none', color: '#4e54c8' }}>
+              <i className="fas fa-hospital-alt"></i>
+            </Link>
             <h1>Find Your Clinic</h1>
             <p>Search for your clinic to access patient, doctor, or staff login</p>
           </div>

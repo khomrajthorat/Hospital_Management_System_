@@ -15,6 +15,7 @@ import {
   saveDoctorData,
   validators 
 } from '../../auth/authService';
+import '../../auth/OneCareAuth.css';
 import '../ClinicWebsite/ClinicAuth.css';
 
 const ROLES = [
@@ -223,16 +224,18 @@ export default function ClinicLogin() {
           <form onSubmit={handleSubmit}>
             {/* Clinic Branding */}
             <div className="clinic-branding-header">
-              {clinic?.logo ? (
-                <img 
-                  src={getImageUrl(clinic.logo)}
-                  alt={clinic.name} 
-                  className="clinic-logo-img" 
-                />
-              ) : (
-                <div className="medical-cross" style={{ width: 40, height: 40, margin: '0 auto 10px' }}></div>
-              )}
-              <span className="clinic-name-badge">{clinic?.name}</span>
+              <Link to={`/c/${subdomain}`} style={{ textDecoration: 'none', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+                {clinic?.logo ? (
+                  <img 
+                    src={getImageUrl(clinic.logo)}
+                    alt={clinic.name} 
+                    className="clinic-logo-img" 
+                  />
+                ) : (
+                  <div className="medical-cross" style={{ width: 40, height: 40, margin: '0 auto 10px' }}></div>
+                )}
+                <span className="clinic-name-badge">{clinic?.name}</span>
+              </Link>
             </div>
 
             <h1 className="animate-enter" style={{ '--i': 0 }}>Welcome Back</h1>
@@ -330,7 +333,7 @@ export default function ClinicLogin() {
 
         {/* Side Panel */}
         <div className="clinic-side-panel">
-          <div className="panel-content">
+          <div className="clinic-panel-content">
             <h1>{clinic?.name || 'Clinic Portal'}</h1>
             <p>Access your appointments, medical records, and more in one secure place.</p>
             <button className="transparent-btn" type="button" onClick={() => navigate(`/c/${subdomain}/signup`)}>
